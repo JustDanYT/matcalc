@@ -881,6 +881,32 @@ export const radiantDawn: Weapon = createWeapon(
   }
 );
 
+export const luxAndUmbra: Weapon = createWeapon(
+  {
+    id: 'lux_and_umbra',
+    name: 'Lux & Umbra',
+    type: WeaponType.PISTOL,
+    rarity: 5,
+    icon: '/assets/icons/weapons/lux_and_umbra.webp',
+  },
+  {
+    ascension: { forgery: FORGERY_PISTOL, enemy: ENEMY_RING }
+  }
+);
+
+export const emeraldSentence: Weapon = createWeapon(
+  {
+    id: 'emerald_sentence',
+    name: 'Emerald Sentence',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/weapons/emerald_sentence.webp',
+  },
+  {
+    ascension: { forgery: FORGERY_SWORD, enemy: ENEMY_HOWLER }
+  }
+);
+
 export const weapons: Weapon[] = [
   // v1.0
   abyssSurges,
@@ -968,4 +994,8 @@ export const weapons: Weapon[] = [
   solarFlame,
   aetherStrike,
   radiantDawn,
+
+  // v2.7
+  luxAndUmbra,
+  emeraldSentence,
 ];

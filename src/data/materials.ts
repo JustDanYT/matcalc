@@ -127,7 +127,10 @@ export enum WeeklyBossMaterial {
   THE_NETHERWORLDS_STARE = "The Netherworld's Stare",
 
   // v2.2
-  WHEN_IRISES_BLOOM = "When Irises Bloom"
+  WHEN_IRISES_BLOOM = "When Irises Bloom",
+
+  // v2.7
+  CURSE_OF_THE_ABYSS = "Curse of the Abyss",
 }
 
 // Enum for Character Specialty Materials (local specialties)
@@ -167,6 +170,10 @@ export enum SpecialtyMaterial {
   // v2.6
   LUMINOUS_CALENDULA = "Luminous Calendula",
   SLIVERGLOW_BLOOM = "Sliverglow Bloom",
+
+  // v2.7
+  STONE_ROSE = "Stone Rose",
+
 }
 
 
@@ -287,6 +294,7 @@ export const allMaterials: Material[] = [
   { name: WeeklyBossMaterial.SENTINELS_DAGGER, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.SENTINELS_DAGGER) },
   { name: WeeklyBossMaterial.THE_NETHERWORLDS_STARE, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.THE_NETHERWORLDS_STARE) },
   { name: WeeklyBossMaterial.WHEN_IRISES_BLOOM, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.WHEN_IRISES_BLOOM) },
+  { name: WeeklyBossMaterial.CURSE_OF_THE_ABYSS, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.CURSE_OF_THE_ABYSS) },
 
   // Specialty Materials
   { name: SpecialtyMaterial.BELLE_POPPY, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.BELLE_POPPY) },
@@ -309,6 +317,7 @@ export const allMaterials: Material[] = [
   { name: SpecialtyMaterial.AFTERLIFE, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.AFTERLIFE) },
   { name: SpecialtyMaterial.LUMINOUS_CALENDULA, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.LUMINOUS_CALENDULA) },
   { name: SpecialtyMaterial.SLIVERGLOW_BLOOM, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.SLIVERGLOW_BLOOM) },
+  { name: SpecialtyMaterial.STONE_ROSE, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.STONE_ROSE) },
 ];
 
 // Helper to get material details by name

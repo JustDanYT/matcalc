@@ -773,6 +773,40 @@ export const iuno: Character = createCharacter(
   }
 );
 
+export const galbrena: Character = createCharacter(
+  {
+    id: 'galbrena',
+    name: 'Galbrena',
+    type: WeaponType.PISTOL,
+    rarity: 5,
+    icon: '/assets/icons/characters/galbrena.webp',
+    statNodeNames: ['Crit. DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.BLIGHTED_CROWN_OF_PUPPET_KING, enemy: ENEMY_TIDAL_RESIDUUM, specialty: SpecialtyMaterial.STONE_ROSE },
+    skill: { forgery: FORGERY_PISTOL, enemy: ENEMY_TIDAL_RESIDUUM, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    statNode: { forgery: FORGERY_PISTOL, enemy: ENEMY_TIDAL_RESIDUUM, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    inherentSkill: { forgery: FORGERY_PISTOL, enemy: ENEMY_TIDAL_RESIDUUM, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+  }
+);
+
+export const qiuyuan: Character = createCharacter(
+  {
+    id: 'qiuyuan',
+    name: 'Qiuyuan',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/qiuyuan.webp',
+    statNodeNames: ['Crit. Rate+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.TRUTH_IN_LIES, enemy: ENEMY_WHISPERIN, specialty: SpecialtyMaterial.WINTRY_BELL },
+    skill: { forgery: FORGERY_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    statNode: { forgery: FORGERY_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    inherentSkill: { forgery: FORGERY_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+  }
+);
+
 export const characters: Character[] = [
   // v1.0
   roverSpectro,
@@ -836,4 +870,8 @@ export const characters: Character[] = [
   // v2.6
   augusta,
   iuno,
+
+  // v2.7
+  galbrena,
+  qiuyuan,
 ]
