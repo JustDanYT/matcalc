@@ -2,18 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { characters } from './data/characters';
 import { weapons } from './data/weapons';
 import { calculateMaterials } from './utils/calculator';
-import { LevelSlider } from './components/LevelSlider';
-import { LevelCheckbox } from './components/LevelCheckbox';
 import { Icon } from './components/Icon';
-import { CalculatedMaterial, Character, Material } from './types';
+import { CalculatedMaterial, CharacterSelectionConfig, WeaponSelectionConfig, Material } from './types';
 import { getMaterialByName, BossMaterial, EnemyMaterial, SpecialtyMaterial, ForgeryMaterial, ExpMaterial, Currency, WeeklyBossMaterial } from './data/materials';
 import * as materialSets from './data/materialSets';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
-import { Dropdown } from './components/Dropdown';
+import { MultiDropdown } from './components/MultiDropdown';
 import { MaterialInputField } from './components/MaterialInputField';
+import { CharacterConfigPanel } from './components/CharacterConfigPanel';
+import { WeaponConfigPanel } from './components/WeaponConfigPanel';
 import { getWaveplateCost, CLAIM_COST } from './data/waveplateCosts';
 
-// Helper function to determine a material's source type based on its name
 const getMaterialSource = (material: Material): string => {
   if (Object.values(BossMaterial).includes(material.name as any)) return 'BossMaterial';
   if (Object.values(EnemyMaterial).includes(material.name as any)) return 'EnemyMaterial';
@@ -25,7 +24,6 @@ const getMaterialSource = (material: Material): string => {
   return 'Other';
 };
 
-// Helper function to get a unique identifier for a material set
 const getMaterialSetId = (material: Material): string | null => {
   for (const key in materialSets) {
     const materialSet = (materialSets as any)[key];
@@ -36,7 +34,6 @@ const getMaterialSetId = (material: Material): string | null => {
   return null;
 };
 
-// Define display names for material sources
 const materialSourceDisplayNames: { [key: string]: string } = {
   BossMaterial: 'Boss Ascension Materials',
   ExpMaterial: 'EXP Materials',
@@ -48,10 +45,8 @@ const materialSourceDisplayNames: { [key: string]: string } = {
   Other: 'Other Materials',
 };
 
-// Helper function to abbreviate large numbers for display
 const formatNumber = (num: number): string => {
-  const roundedNum = Math.round(num); // Round the number first
-
+  const roundedNum = Math.round(num);
   if (roundedNum >= 1000000) {
     return (roundedNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
   } else if (roundedNum >= 1000) {
@@ -60,25 +55,59 @@ const formatNumber = (num: number): string => {
   return roundedNum.toString();
 };
 
-// Helper function to format Waveplate numbers (raw whole number)
 const formatWaveplateNumber = (num: number): string => {
   return Math.round(num).toString();
 };
 
-const WAVEPLATE_ICON_PATH = getMaterialByName(Currency.WAVEPLATES)?.icon || '❓';
+const WAVEPLATE_ICON_PATH = getMaterialByName(Currency.WAVEPLATES)?.icon || '?';
 const GITHUB_ICON_PATH = '/assets/icons/other/github-mark-white.svg';
 
+const createDefaultCharSelection = (id: string): CharacterSelectionConfig => ({
+  id,
+  currentLevel: 90,
+  targetLevel: 90,
+  skills: Array(5).fill(1),
+  targetSkills: Array(5).fill(10),
+  statNodeBooleans: Array(4).fill([true, true]) as boolean[][],
+  inherentSkillBooleans: [true, true],
+});
 
-// Main App Component
+const createDefaultWeaponSelection = (id: string): WeaponSelectionConfig => ({
+  id,
+  currentLevel: 90,
+  targetLevel: 90,
+});
+
 const App: React.FC = () => {
-  // LocalStorage caching
-  const LOCAL_STORAGE_KEY = 'wuwaMaterialPlannerState';
+  const LOCAL_STORAGE_KEY = 'wuwaMaterialPlannerStateV2';
 
-  // Function to load state from localStorage
   const loadState = () => {
     try {
       const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (serializedState === null) {
+        const oldState = localStorage.getItem('wuwaMaterialPlannerState');
+        if (oldState) {
+          const saved = JSON.parse(oldState);
+          if (saved.selectedCharacterId && !saved.characterSelections) {
+            saved.characterSelections = [{
+              id: saved.selectedCharacterId,
+              currentLevel: saved.charCurrentLevel ?? 90,
+              targetLevel: saved.charTargetLevel ?? 90,
+              skills: saved.skills ?? Array(5).fill(1),
+              targetSkills: saved.targetSkills ?? Array(5).fill(10),
+              statNodeBooleans: saved.statNodeBooleans ?? Array(4).fill([true, true]),
+              inherentSkillBooleans: saved.inherentSkillBooleans ?? [true, true],
+            }];
+          }
+          if (saved.selectedWeaponId && !saved.weaponSelections) {
+            saved.weaponSelections = [{
+              id: saved.selectedWeaponId,
+              currentLevel: saved.weaponCurrentLevel ?? 1,
+              targetLevel: saved.weaponTargetLevel ?? 90,
+            }];
+          }
+          return saved;
+        }
         return undefined;
       }
       return JSON.parse(serializedState);
@@ -90,132 +119,101 @@ const App: React.FC = () => {
 
   const savedState = loadState();
 
+  const [characterSelections, setCharacterSelections] = useState<CharacterSelectionConfig[]>(
+    savedState?.characterSelections || []
+  );
+  const [weaponSelections, setWeaponSelections] = useState<WeaponSelectionConfig[]>(
+    savedState?.weaponSelections || []
+  );
+  const [materialInventory, setMaterialInventory] = useState<{ [materialName: string]: number }>(
+    savedState?.materialInventory || {}
+  );
 
-  // Initialization - load from saved state or use default values
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string>(savedState?.selectedCharacterId || '');
-  const [selectedWeaponId, setSelectedWeaponId] = useState<string>(savedState?.selectedWeaponId || '');
-  const [filterWeaponsByType, setFilterWeaponsByType] = useState<boolean>(savedState?.filterWeaponsByType || true);
-
-  const [charCurrentLevel, setCharCurrentLevel] = useState<number>(savedState?.charCurrentLevel || 1);
-  const [charTargetLevel, setCharTargetLevel] = useState<number>(savedState?.charTargetLevel || 90);
-  const [weaponCurrentLevel, setWeaponCurrentLevel] = useState<number>(savedState?.weaponCurrentLevel || 1);
-  const [weaponTargetLevel, setWeaponTargetLevel] = useState<number>(savedState?.weaponTargetLevel || 90);
-
-  const [skills, setSkills] = useState<number[]>(savedState?.skills || Array(5).fill(1));
-  const [targetSkills, setTargetSkills] = useState<number[]>(savedState?.targetSkills || Array(5).fill(10));
-
-  const [statNodeBooleans, setStatNodeBooleans] = useState<boolean[][]>(savedState?.statNodeBooleans || Array(4).fill([true, true]));
-  const [inherentSkillBooleans, setInherentSkillBooleans] = useState<boolean[]>(savedState?.inherentSkillBooleans || [true, true]);
-
-  const [materialInventory, setMaterialInventory] = useState<{ [materialName: string]: number }>(savedState?.materialInventory || {});
-
-  // Recalculate from cached state
   const [allMaterials, setAllMaterials] = useState<CalculatedMaterial[]>([]);
   const [totalWaveplate, setTotalWaveplate] = useState<number>(0);
 
-  // Effect to save state to localStorage whenever a persisted state value changes
   useEffect(() => {
     try {
-      const stateToSave = {
-        selectedCharacterId,
-        selectedWeaponId,
-        filterWeaponsByType,
-        charCurrentLevel,
-        charTargetLevel,
-        weaponCurrentLevel,
-        weaponTargetLevel,
-        skills,
-        targetSkills,
-        statNodeBooleans,
-        inherentSkillBooleans,
-        materialInventory,
-      };
-      const serializedState = JSON.stringify(stateToSave);
-      localStorage.setItem(LOCAL_STORAGE_KEY, serializedState);
+      const stateToSave = { characterSelections, weaponSelections, materialInventory };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (err) {
       console.error("Could not save state to localStorage", err);
     }
-  }, [
-    selectedCharacterId,
-    selectedWeaponId,
-    filterWeaponsByType,
-    charCurrentLevel,
-    charTargetLevel,
-    weaponCurrentLevel,
-    weaponTargetLevel,
-    skills,
-    targetSkills,
-    statNodeBooleans,
-    inherentSkillBooleans,
-    materialInventory,
-  ]);
+  }, [characterSelections, weaponSelections, materialInventory]);
 
-  const selectedCharacter: Character | undefined = characters.find(
-    (char) => char.id === selectedCharacterId
-  );
-  const selectedWeapon = weapons.find((w) => w.id === selectedWeaponId);
+  const hasSelections = characterSelections.length > 0 || weaponSelections.length > 0;
 
-  // Filtered weapons based on character type and toggle
-  const filteredWeapons = selectedCharacter && filterWeaponsByType
-    ? weapons.filter(weapon => weapon.type === selectedCharacter.type)
-    : weapons;
+  const selectedCharIds = characterSelections.map(s => s.id);
+  const selectedWeaponIds = weaponSelections.map(s => s.id);
 
-  // Effect to clear selected weapon when filtering requirements change
-  useEffect(() => {
-    if (selectedWeaponId && !filteredWeapons.some(w => w.id === selectedWeaponId)) {
-      setSelectedWeaponId('');
-    }
-  }, [selectedCharacterId, filterWeaponsByType, filteredWeapons, selectedWeaponId]);
-
-  // Effect for calculating materials
-  useEffect(() => {
-    // Character Materials
-    const characterAscensionMaterials = selectedCharacter ? calculateMaterials(selectedCharacter, charCurrentLevel, charTargetLevel, 'ascension') : [];
-    const characterExpMaterials = selectedCharacter ? calculateMaterials(selectedCharacter, charCurrentLevel, charTargetLevel, 'exp') : [];
-    const skillMaterials = selectedCharacter ? skills.flatMap((current, index) => calculateMaterials(selectedCharacter, current, targetSkills[index], 'skill')) : [];
-
-    // Dynamically calculate current and target levels for stat nodes
-    const statNodeMaterials = selectedCharacter ? statNodeBooleans.flatMap((levels) => {
-      const [isL1Checked, isL2Checked] = levels;
-      if (isL1Checked && isL2Checked) {
-        return calculateMaterials(selectedCharacter, 0, 2, 'statNode');
-      } else if (isL1Checked) {
-        return calculateMaterials(selectedCharacter, 0, 1, 'statNode');
-      } else if (isL2Checked) {
-        return calculateMaterials(selectedCharacter, 1, 2, 'statNode');
+  const handleToggleCharacter = (id: string) => {
+    setCharacterSelections(prev => {
+      if (prev.some(s => s.id === id)) {
+        return prev.filter(s => s.id !== id);
       }
-      return [];
-    }) : [];
+      return [...prev, createDefaultCharSelection(id)];
+    });
+  };
 
-    // Dynamically calculate current and target levels for inherent skill
-    const inherentSkillMaterials = selectedCharacter ? (() => {
-      const [isL1Checked, isL2Checked] = inherentSkillBooleans;
-      if (isL1Checked && isL2Checked) {
-        return calculateMaterials(selectedCharacter, 0, 2, 'inherentSkill');
-      } else if (isL1Checked) {
-        return calculateMaterials(selectedCharacter, 0, 1, 'inherentSkill');
-      } else if (isL2Checked) {
-        return calculateMaterials(selectedCharacter, 1, 2, 'inherentSkill');
+  const handleToggleWeapon = (id: string) => {
+    setWeaponSelections(prev => {
+      if (prev.some(s => s.id === id)) {
+        return prev.filter(s => s.id !== id);
       }
-      return [];
-    })() : [];
+      return [...prev, createDefaultWeaponSelection(id)];
+    });
+  };
 
-    // Weapon Materials
-    const weaponMaterials = selectedWeapon ? calculateMaterials(selectedWeapon, weaponCurrentLevel, weaponTargetLevel, 'ascension') : [];
-    const weaponExpMaterials = selectedWeapon ? calculateMaterials(selectedWeapon, weaponCurrentLevel, weaponTargetLevel, 'exp') : [];
+  const handleUpdateCharacter = (id: string, config: Partial<CharacterSelectionConfig>) => {
+    setCharacterSelections(prev => prev.map(s => s.id === id ? { ...s, ...config } : s));
+  };
 
-    // Aggregate all materials
-    const tempAllMaterials = [
-      ...characterAscensionMaterials,
-      ...characterExpMaterials,
-      ...skillMaterials,
-      ...statNodeMaterials,
-      ...inherentSkillMaterials,
-      ...weaponMaterials,
-      ...weaponExpMaterials,
-    ];
+  const handleUpdateWeapon = (id: string, config: Partial<WeaponSelectionConfig>) => {
+    setWeaponSelections(prev => prev.map(s => s.id === id ? { ...s, ...config } : s));
+  };
 
-    // Combine materials with the same name
+  useEffect(() => {
+    const tempAllMaterials: CalculatedMaterial[] = [];
+
+    characterSelections.forEach(sel => {
+      const char = characters.find(c => c.id === sel.id);
+      if (!char) return;
+
+      tempAllMaterials.push(...calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'ascension'));
+      tempAllMaterials.push(...calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'exp'));
+
+      sel.skills.forEach((current, index) => {
+        tempAllMaterials.push(...calculateMaterials(char, current, sel.targetSkills[index], 'skill'));
+      });
+
+      sel.statNodeBooleans.forEach((levels) => {
+        const [isL1Checked, isL2Checked] = levels;
+        if (isL1Checked && isL2Checked) {
+          tempAllMaterials.push(...calculateMaterials(char, 0, 2, 'statNode'));
+        } else if (isL1Checked) {
+          tempAllMaterials.push(...calculateMaterials(char, 0, 1, 'statNode'));
+        } else if (isL2Checked) {
+          tempAllMaterials.push(...calculateMaterials(char, 1, 2, 'statNode'));
+        }
+      });
+
+      const [isL1Checked, isL2Checked] = sel.inherentSkillBooleans;
+      if (isL1Checked && isL2Checked) {
+        tempAllMaterials.push(...calculateMaterials(char, 0, 2, 'inherentSkill'));
+      } else if (isL1Checked) {
+        tempAllMaterials.push(...calculateMaterials(char, 0, 1, 'inherentSkill'));
+      } else if (isL2Checked) {
+        tempAllMaterials.push(...calculateMaterials(char, 1, 2, 'inherentSkill'));
+      }
+    });
+
+    weaponSelections.forEach(sel => {
+      const weapon = weapons.find(w => w.id === sel.id);
+      if (!weapon) return;
+      tempAllMaterials.push(...calculateMaterials(weapon, sel.currentLevel, sel.targetLevel, 'ascension'));
+      tempAllMaterials.push(...calculateMaterials(weapon, sel.currentLevel, sel.targetLevel, 'exp'));
+    });
+
     const consolidatedMaterials: { [key: string]: CalculatedMaterial } = {};
     tempAllMaterials.forEach(mat => {
       if (consolidatedMaterials[mat.material.name]) {
@@ -225,31 +223,12 @@ const App: React.FC = () => {
       }
     });
 
-    const finalMaterials = Object.values(consolidatedMaterials);
-    setAllMaterials(finalMaterials);
+    setAllMaterials(Object.values(consolidatedMaterials));
+  }, [characterSelections, weaponSelections]);
 
-  }, [
-    selectedCharacterId, selectedWeaponId,
-    charCurrentLevel, charTargetLevel,
-    weaponCurrentLevel, weaponTargetLevel,
-    skills, targetSkills,
-    statNodeBooleans,
-    inherentSkillBooleans,
-    materialInventory,
-    selectedCharacter,
-    selectedWeapon,
-  ]);
-
-  // Sort order based on material category
   const materialSourceOrder = [
-    'BossMaterial',
-    'ExpMaterial',
-    'SpecialtyMaterial',
-    'ForgeryMaterial',
-    'EnemyMaterial',
-    'WeeklyBossMaterial',
-    'Currency',
-    'Other',
+    'BossMaterial', 'ExpMaterial', 'SpecialtyMaterial',
+    'ForgeryMaterial', 'EnemyMaterial', 'WeeklyBossMaterial', 'Currency', 'Other',
   ];
 
   const sortMaterials = (a: CalculatedMaterial, b: CalculatedMaterial) => {
@@ -258,45 +237,34 @@ const App: React.FC = () => {
     const aSetId = getMaterialSetId(a.material);
     const bSetId = getMaterialSetId(b.material);
 
-    // Primary sort by material source category (BossMaterial, ExpMaterial, etc.)
     const aIndex = materialSourceOrder.indexOf(aSource);
     const bIndex = materialSourceOrder.indexOf(bSource);
+    if (aIndex !== bIndex) return aIndex - bIndex;
 
-    if (aIndex !== bIndex) {
-      return aIndex - bIndex;
-    }
-
-    // If sources are the same, apply specific set grouping for Enemy/Forgery Materials
     if ((aSource === 'EnemyMaterial' || aSource === 'ForgeryMaterial') &&
         (bSource === 'EnemyMaterial' || bSource === 'ForgeryMaterial')) {
         if (aSetId && bSetId) {
             if (aSetId === bSetId) {
                 return (a.material.rarity || 0) - (b.material.rarity || 0);
-            } else {
-                return aSetId.localeCompare(bSetId);
             }
+            return aSetId.localeCompare(bSetId);
         }
     }
 
-    // Secondary sort by rarity (for materials not covered by set grouping within source, or for other sources)
     if (a.material.rarity && b.material.rarity && a.material.rarity !== b.material.rarity) {
       return (a.material.rarity || 0) - (b.material.rarity || 0);
     }
 
-    // Fallback sort alphabetical by name
     return a.material.name.localeCompare(b.material.name);
   };
 
-
   const sortedMaterials = [...allMaterials].sort(sortMaterials);
 
-  // Filter materials that are still needed after accounting for inventory
   const remainingNeededMaterials = sortedMaterials.filter(mat => {
     const currentInventory = materialInventory[mat.material.name] || 0;
     return (mat.quantity - currentInventory) > 0;
   });
 
-  // Helper function to group remaining materials by category and calculate total waveplate cost per category
   const groupMaterialsByCategory = (materials: CalculatedMaterial[]) => {
     const groups: { [key: string]: { materials: CalculatedMaterial[]; totalWaveplateCost: number } } = {};
 
@@ -335,16 +303,13 @@ const App: React.FC = () => {
 
   const materialGroups = groupMaterialsByCategory(remainingNeededMaterials);
 
-  // Effect for calculating overall total waveplates
   useEffect(() => {
     const calculatedTotalWaveplate = Object.values(materialGroups).reduce((sum, group) => {
       return sum + group.totalWaveplateCost;
     }, 0);
     setTotalWaveplate(calculatedTotalWaveplate);
-  }, [materialGroups]); // Recalculate whenever materialGroups change
+  }, [materialGroups]);
 
-
-  // Function to distribute grouped materials to columns
   const distributeCategoriesToColumns = (groups: { [key: string]: { materials: CalculatedMaterial[]; totalWaveplateCost: number } }) => {
     const column1: { materials: CalculatedMaterial[]; totalWaveplateCost: number }[] = [];
     const column2: { materials: CalculatedMaterial[]; totalWaveplateCost: number }[] = [];
@@ -373,47 +338,8 @@ const App: React.FC = () => {
     return { column1, column2 };
   };
 
-
   const { column1: column1Remaining, column2: column2Remaining } = distributeCategoriesToColumns(materialGroups);
 
-  const handleStatNodeChange = (index: number, level: 1 | 2) => (checked: boolean) => {
-    setStatNodeBooleans(prev => {
-      const newLevels = [...prev];
-      const newLevelBooleans = [...newLevels[index]];
-      if (level === 1) {
-        newLevelBooleans[0] = checked;
-      } else {
-        newLevelBooleans[1] = checked;
-      }
-      newLevels[index] = newLevelBooleans;
-      return newLevels;
-    });
-  };
-
-  const handleInherentSkillChange = (level: 1 | 2) => (checked: boolean) => {
-    setInherentSkillBooleans(prev => {
-      const newBooleans = [...prev];
-      if (level === 1) {
-                      newBooleans[0] = checked;
-      } else {
-        newBooleans[1] = checked;
-      }
-      return newBooleans;
-    });
-  };
-
-  const handleSkillChange = (
-    index: number,
-    setter: React.Dispatch<React.SetStateAction<number[]>>
-  ) => (level: number) => {
-    setter(prev => {
-      const newLevels = [...prev];
-      newLevels[index] = level;
-      return newLevels;
-    });
-  };
-
-  // Handler for inventory input changes, passed to MaterialInputField
   const handleInventoryChange = (materialName: string) => (value: number) => {
     setMaterialInventory(prev => ({
       ...prev,
@@ -421,124 +347,109 @@ const App: React.FC = () => {
     }));
   };
 
-  // Function to clear all material inventory entries
   const clearAllInventory = () => {
     setMaterialInventory({});
   };
 
-  // Function to reset all level-related states
-  const resetLevels = () => {
-    setCharCurrentLevel(1);
-    setCharTargetLevel(90);
-    setWeaponCurrentLevel(1);
-    setWeaponTargetLevel(90);
-  };
-
-  // Function to reset all skill-related states
-  const resetSkillsAndStats = () => {
-    setSkills(Array(5).fill(1));
-    setTargetSkills(Array(5).fill(10));
-    setStatNodeBooleans(Array(4).fill([true, true]));
-    setInherentSkillBooleans([true, true]);
-  };
-
-  const skillLabels = ["Basic Attack", "Resonance Skill", "Forte Circuit", "Resonance Liberation", "Intro Skill"];
-  const allowedLevels = [1, 20, 40, 50, 60, 70, 80, 90];
-
-  // Get Stat Node names from selected character, else fall back to default 'Stat Node'
-  const statNodeName1 = selectedCharacter?.statNodeNames?.[0] || 'Stat Node';
-  const statNodeName2 = selectedCharacter?.statNodeNames?.[1] || 'Stat Node';
-
-  // Helper function to get rarity glow class for icons
   const getRarityGlowClass = (rarity?: number) => {
     switch (rarity) {
-      case 1:
-        return 'drop-shadow-[0_0_12px_rgba(156,163,175,0.8)]';
-      case 2:
-        return 'drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]';
-      case 3:
-        return 'drop-shadow-[0_0_12px_rgba(96,165,250,0.8)]';
-      case 4:
-        return 'drop-shadow-[0_0_12px_rgba(168,85,247,0.8)]';
-      case 5:
-        return 'drop-shadow-[0_0_12px_rgba(252,211,77,0.8)]';
-      default:
-        return '';
+      case 1: return 'drop-shadow-[0_0_12px_rgba(156,163,175,0.8)]';
+      case 2: return 'drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]';
+      case 3: return 'drop-shadow-[0_0_12px_rgba(96,165,250,0.8)]';
+      case 4: return 'drop-shadow-[0_0_12px_rgba(168,85,247,0.8)]';
+      case 5: return 'drop-shadow-[0_0_12px_rgba(252,211,77,0.8)]';
+      default: return '';
     }
   };
 
-  // Helper function to get a consistent gray border class for containers
-  const getContainerBorderClass = () => {
-    return 'border-gray-700';
+  const getContainerBorderClass = () => 'border-gray-700';
+
+  const renderMaterialColumn = (
+    materialGroups: { materials: CalculatedMaterial[]; totalWaveplateCost: number }[],
+    columnKey: string
+  ) => {
+    return materialGroups.map((group, groupIndex) => {
+      const displaySource = materialSourceDisplayNames[getMaterialSource(group.materials[0].material)] || getMaterialSource(group.materials[0].material);
+      const sourceCategory = getMaterialSource(group.materials[0].material);
+      let claims = 0;
+      let claimCost = 0;
+
+      if (sourceCategory === 'BossMaterial' || sourceCategory === 'WeeklyBossMaterial') {
+        claimCost = CLAIM_COST.BOSS;
+      } else if (sourceCategory === 'ForgeryMaterial' || sourceCategory === 'ExpMaterial' || sourceCategory === 'Currency') {
+        claimCost = CLAIM_COST.CHALLENGE;
+      }
+
+      if (claimCost > 0 && group.totalWaveplateCost > 0) {
+        claims = Math.ceil(group.totalWaveplateCost / claimCost);
+      }
+
+      return (
+        <React.Fragment key={`${columnKey}-group-${groupIndex}`}>
+          <h4 className="text-lg font-semibold mt-4 mb-2 text-gray-300 border-b border-gray-600 pb-1 first:mt-0 flex items-center justify-between">
+            <span>{displaySource}</span>
+            {group.totalWaveplateCost > 0 && (
+              <span className="flex items-center text-sm font-normal text-cyan-400 text-right">
+                <Icon src={WAVEPLATE_ICON_PATH} alt="Waveplates" className="w-5 h-5 mr-1" />
+                {formatWaveplateNumber(group.totalWaveplateCost)} Waveplates
+                {claims > 0 && (
+                  <span className="ml-1 text-gray-400">({claims} Runs)</span>
+                )}
+              </span>
+            )}
+          </h4>
+          {group.materials.map((mat) => {
+            const materialDetails = getMaterialByName(mat.material.name);
+            const iconSrc = materialDetails?.icon || '?';
+            const rarityGlowClass = getRarityGlowClass(materialDetails?.rarity);
+            const currentInventory = materialInventory[mat.material.name] || 0;
+            const neededToFarm = Math.max(0, mat.quantity - currentInventory);
+
+            return (
+              <div key={`${columnKey}-${mat.material.name}`} className="flex items-center justify-between gap-4 text-gray-200 py-2">
+                <div className="flex items-center flex-grow">
+                  <Icon src={iconSrc} alt={mat.material.name} className={`w-10 h-10 mr-4 rounded-full border border-gray-500 ${rarityGlowClass}`} />
+                  <span className="font-medium flex-grow truncate">{mat.material.name}</span>
+                </div>
+                <div className="flex-shrink-0 text-right min-w-[60px]">
+                  <span className="text-xl font-extrabold text-gray-300">x{neededToFarm}</span>
+                </div>
+              </div>
+            );
+          })}
+        </React.Fragment>
+      );
+    });
   };
 
-// Helper function to render a column with category headers and Waveplate costs
-const renderMaterialColumn = (
-  materialGroups: { materials: CalculatedMaterial[]; totalWaveplateCost: number }[],
-  columnKey: string
-) => {
-  return materialGroups.map((group, groupIndex) => {
-    const displaySource = materialSourceDisplayNames[getMaterialSource(group.materials[0].material)] || getMaterialSource(group.materials[0].material);
-    const sourceCategory = getMaterialSource(group.materials[0].material);
-    let claims = 0;
-    let claimCost = 0;
-    
-    if (sourceCategory === 'BossMaterial' || sourceCategory === 'WeeklyBossMaterial') {
-      claimCost = CLAIM_COST.BOSS;
-    } else if (sourceCategory === 'ForgeryMaterial' || sourceCategory === 'ExpMaterial' || sourceCategory === 'Currency') {
-      claimCost = CLAIM_COST.CHALLENGE;
+  const hasPrerelease = (() => {
+    for (const sel of characterSelections) {
+      const c = characters.find(ch => ch.id === sel.id);
+      if (c?.prerelease) return true;
     }
-
-    if (claimCost > 0 && group.totalWaveplateCost > 0) {
-      claims = Math.ceil(group.totalWaveplateCost / claimCost);
+    for (const sel of weaponSelections) {
+      const w = weapons.find(wp => wp.id === sel.id);
+      if (w?.prerelease) return true;
     }
+    return false;
+  })();
 
-    return (
-      <React.Fragment key={`${columnKey}-group-${groupIndex}`}>
-        <h4 className="text-lg font-semibold mt-4 mb-2 text-gray-300 border-b border-gray-600 pb-1 first:mt-0 flex items-center justify-between">
-          <span>{displaySource}</span>
-          {group.totalWaveplateCost > 0 && ( 
-            <span className="flex items-center text-sm font-normal text-cyan-400 text-right">
-              <Icon src={WAVEPLATE_ICON_PATH} alt="Waveplates" className="w-5 h-5 mr-1" />
-              {formatWaveplateNumber(group.totalWaveplateCost)} Waveplates
-              {claims > 0 && (
-                <span className="ml-1 text-gray-400">({claims} Runs)</span>
-              )}
-            </span>
-          )}
-        </h4>
-        {group.materials.map((mat) => {
-          const materialDetails = getMaterialByName(mat.material.name);
-          const iconSrc = materialDetails?.icon || '❓';
-          const rarityGlowClass = getRarityGlowClass(materialDetails?.rarity);
-          const currentInventory = materialInventory[mat.material.name] || 0;
-          const neededToFarm = Math.max(0, mat.quantity - currentInventory);
-
-          return (
-            <div key={`${columnKey}-${mat.material.name}`} className="flex items-center justify-between gap-4 text-gray-200 py-2">
-              {/* Material Icon & Name */}
-              <div className="flex items-center flex-grow">
-                <Icon src={iconSrc} alt={mat.material.name} className={`w-10 h-10 mr-4 rounded-full border border-gray-500 ${rarityGlowClass}`} />
-                <span className="font-medium flex-grow truncate">{mat.material.name}</span>
-              </div>
-              {/* To Farm Quantity */}
-              <div className="flex-shrink-0 text-right min-w-[60px]">
-                <span className={`text-xl font-extrabold text-gray-300`}>
-                  x{neededToFarm}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </React.Fragment>
-    );
-  });
-};
+  const prereleaseWarnings = (() => {
+    const names: string[] = [];
+    for (const sel of characterSelections) {
+      const c = characters.find(ch => ch.id === sel.id);
+      if (c?.prerelease) names.push(c.name);
+    }
+    for (const sel of weaponSelections) {
+      const w = weapons.find(wp => wp.id === sel.id);
+      if (w?.prerelease) names.push(w.name);
+    }
+    return names;
+  })();
 
   return (
     <div className="bg-gray-950 text-white min-h-screen p-8 font-sans">
       <div className="max-w-7xl mx-auto relative">
-        {/* Header with Title and GitHub Link */}
         <div className="flex flex-col md:flex-row items-center justify-center relative mb-12">
           <h1 className="text-5xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-cyan-400 md:flex-grow leading-normal">
             Wuthering Waves Material Planner
@@ -556,173 +467,61 @@ const renderMaterialColumn = (
           </div>
         </div>
 
-        {/* Top Bar for Character and Weapon Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-          {/* Character Dropdown */}
-          <Dropdown
-            label="Select Character"
+          <MultiDropdown
+            label="Characters"
             options={characters}
-            selectedValue={selectedCharacterId}
-            onSelect={setSelectedCharacterId}
-            placeholder="-- Select a Character --"
+            selectedIds={selectedCharIds}
+            onToggle={handleToggleCharacter}
+            placeholder="-- Select Characters --"
           />
-
-          {/* Weapon Dropdown */}
-          <div className="relative">
-            <Dropdown
-              label="Select Weapon"
-              options={filteredWeapons}
-              selectedValue={selectedWeaponId}
-              onSelect={setSelectedWeaponId}
-              placeholder="-- Select a Weapon --"
-            />
-            <div className="absolute top-1.5 right-2 flex items-center"> {/* absolute positioning because idk how else to make this work */}
-                <label htmlFor="filter-weapon-type" className="mr-3 text-gray-300 font-medium text-sm">
-                  Filter by Character Type
-                </label>
-                <input
-                  type="checkbox"
-                  id="filter-weapon-type"
-                  checked={filterWeaponsByType}
-                  onChange={(e) => setFilterWeaponsByType(e.target.checked)}
-                  className="
-                    relative w-10 h-5
-                    appearance-none bg-gray-600 rounded-full shadow-inner
-                    cursor-pointer transition-colors duration-300 ease-in-out
-                    hover:ring-2 hover:ring-[#d1d5db] hover:ring-opacity-100
-                    before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:w-4 before:h-4 before:bg-white before:rounded-full before:shadow-md before:shadow-lg
-                    before:transition-transform before:duration-300 before:ease-in-out
-                    checked:bg-[#a78bfa] checked:before:translate-x-5
-                "
-                />
-              </div>
-          </div>
+          <MultiDropdown
+            label="Weapons"
+            options={weapons}
+            selectedIds={selectedWeaponIds}
+            onToggle={handleToggleWeapon}
+            placeholder="-- Select Weapons --"
+          />
         </div>
 
-        {/* Level and Progression Section */}
-        {selectedCharacterId || selectedWeaponId ? (
+        {hasPrerelease && (
+          <div className="mb-4 p-4 bg-red-900/50 border border-red-700 rounded-xl">
+            <p className="text-red-400 text-sm">
+              Warning: Pre-release item(s) selected ({prereleaseWarnings.join(', ')}). Materials are subject to change.
+            </p>
+          </div>
+        )}
+
+        {hasSelections && (
           <div className={`bg-gray-800 p-8 rounded-2xl shadow-2xl mb-4 border ${getContainerBorderClass()}`}>
             <h2 className="text-3xl font-bold mb-6 text-white border-b-2 border-gray-700 pb-4">Progression</h2>
             <div className="flex flex-col gap-8">
-              {/* Character and Weapon Level Panel */}
-              {(selectedCharacterId || selectedWeaponId) && (
-                <CollapsiblePanel title="Levels" defaultOpen={true} panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl`}>
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    {selectedCharacterId && (
-                      <LevelSlider
-                        label={selectedCharacter?.name || "Character"}
-                        currentLevel={charCurrentLevel}
-                        targetLevel={charTargetLevel}
-                        allowedValues={allowedLevels}
-                        onCurrentChange={setCharCurrentLevel}
-                        onTargetChange={setCharTargetLevel}
-                      />
-                    )}
-                    {selectedWeaponId && (
-                      <LevelSlider
-                        label={selectedWeapon?.name || "Weapon"}
-                        currentLevel={weaponCurrentLevel}
-                        targetLevel={weaponTargetLevel}
-                        allowedValues={allowedLevels}
-                        onCurrentChange={setWeaponCurrentLevel}
-                        onTargetChange={setWeaponTargetLevel}
-                      />
-                    )}
-                  </div>
-                  <div className="flex justify-center mt-2 mb-1">
-                    <button
-                      onClick={resetLevels}
-                      className="text-sm bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </CollapsiblePanel>
+              {characterSelections.length > 0 && (
+                <CharacterConfigPanel
+                  characters={characters}
+                  selections={characterSelections}
+                  onUpdate={handleUpdateCharacter}
+                  onRemove={(id) => setCharacterSelections(prev => prev.filter(s => s.id !== id))}
+                  containerBorderClass={getContainerBorderClass()}
+                />
               )}
-
-
-              {/* Skills, Stat Nodes, and Inherent Skills Panel*/}
-              {selectedCharacterId && (
-                <CollapsiblePanel
-                  title="Skills and Stats"
-                  defaultOpen={true}
-                  panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl`}
-                >
-                  <div className="p-5 space-y-6">
-                    {/* Stat Nodes & Inherent Skill Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                      <LevelCheckbox
-                        label={statNodeName1}
-                        isL1Checked={statNodeBooleans[0][0]}
-                        isL2Checked={statNodeBooleans[0][1]}
-                        onL1Change={handleStatNodeChange(0, 1)}
-                        onL2Change={handleStatNodeChange(0, 2)}
-                      />
-                      <LevelCheckbox
-                        label={statNodeName2}
-                        isL1Checked={statNodeBooleans[1][0]}
-                        isL2Checked={statNodeBooleans[1][1]}
-                        onL1Change={handleStatNodeChange(1, 1)}
-                        onL2Change={handleStatNodeChange(1, 2)}
-                      />
-                      <LevelCheckbox
-                        label="Inherent Skills"
-                        isL1Checked={inherentSkillBooleans[0]}
-                        isL2Checked={inherentSkillBooleans[1]}
-                        onL1Change={handleInherentSkillChange(1)}
-                        onL2Change={handleInherentSkillChange(2)}
-                      />
-                      <LevelCheckbox
-                        label={statNodeName2}
-                        isL1Checked={statNodeBooleans[2][0]}
-                        isL2Checked={statNodeBooleans[2][1]}
-                        onL1Change={handleStatNodeChange(2, 1)}
-                        onL2Change={handleStatNodeChange(2, 2)}
-                      />
-                      <LevelCheckbox
-                        label={statNodeName1}
-                        isL1Checked={statNodeBooleans[3][0]}
-                        isL2Checked={statNodeBooleans[3][1]}
-                        onL1Change={handleStatNodeChange(3, 1)}
-                        onL2Change={handleStatNodeChange(3, 2)}
-                      />
-                    </div>
-                    {/* Skills Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                      {skills.map((_, index) => (
-                        <LevelSlider
-                          key={`skill-input-${index}`}
-                          label={skillLabels[index]}
-                          currentLevel={skills[index]}
-                          targetLevel={targetSkills[index]}
-                          maxLevel={10}
-                          minLevel={1}
-                          onCurrentChange={handleSkillChange(index, setSkills)}
-                          onTargetChange={handleSkillChange(index, setTargetSkills)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-center mt-1 mb-1">
-                    <button
-                      onClick={resetSkillsAndStats}
-                      className="text-sm bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </CollapsiblePanel>
+              {weaponSelections.length > 0 && (
+                <WeaponConfigPanel
+                  weapons={weapons}
+                  selections={weaponSelections}
+                  onUpdate={handleUpdateWeapon}
+                  onRemove={(id) => setWeaponSelections(prev => prev.filter(s => s.id !== id))}
+                  containerBorderClass={getContainerBorderClass()}
+                />
               )}
             </div>
           </div>
-        ) : null}
+        )}
 
-        {/* Results Section */}
         <div className={`bg-gray-800 p-8 rounded-2xl shadow-2xl border ${getContainerBorderClass()}`}>
           <h2 className="text-3xl font-bold mb-6 text-white border-b-2 border-gray-700 pb-4">Materials</h2>
-          {selectedCharacterId || selectedWeaponId ? (
+          {hasSelections ? (
             <>
-              {/* Materials Needed Section */}
               {allMaterials.length > 0 && (
                 <CollapsiblePanel
                   title="Materials Needed"
@@ -732,7 +531,7 @@ const renderMaterialColumn = (
                   <div className="p-5">
                     <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                       {sortedMaterials.map((mat, index) => {
-                        const iconSrc = mat.material.icon || '❓';
+                        const iconSrc = mat.material.icon || '?';
                         const rarityGlowClass = getRarityGlowClass(mat.material.rarity);
                         const currentInventory = materialInventory[mat.material.name] || 0;
 
@@ -766,10 +565,8 @@ const renderMaterialColumn = (
                 </CollapsiblePanel>
               )}
 
-              {/* To Be Farmed Section */}
               {remainingNeededMaterials.length > 0 ? (
                 <CollapsiblePanel title="To Be Farmed" defaultOpen={true} panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl`}>
-                    {/* Total waveplate requirement display */}
                     {totalWaveplate > 0 && (
                       <div className="flex flex-col items-center justify-center text-xl font-bold text-cyan-400 py-3 border-b border-gray-700 bg-gray-800 rounded-t-xl">
                         <div className="flex items-center">
@@ -781,15 +578,8 @@ const renderMaterialColumn = (
                       </div>
                     )}
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Column 1 */}
-                    <div>
-                      {renderMaterialColumn(column1Remaining, 'remaining-col1')}
-                    </div>
-
-                    {/* Column 2 */}
-                    <div>
-                      {renderMaterialColumn(column2Remaining, 'remaining-col2')}
-                    </div>
+                    <div>{renderMaterialColumn(column1Remaining, 'remaining-col1')}</div>
+                    <div>{renderMaterialColumn(column2Remaining, 'remaining-col2')}</div>
                   </div>
                 </CollapsiblePanel>
               ) : (
@@ -797,7 +587,7 @@ const renderMaterialColumn = (
               )}
             </>
           ) : (
-            <p className="text-gray-400 text-center text-lg py-12">Please select a character or weapon to begin your material calculation.</p>
+            <p className="text-gray-400 text-center text-lg py-12">Select characters or weapons to begin calculating materials.</p>
           )}
         </div>
       </div>

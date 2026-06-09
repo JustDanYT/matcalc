@@ -36,6 +36,41 @@ export const FORGERY_GAUNTLETS: [ForgeryMaterial, ForgeryMaterial, ForgeryMateri
   ForgeryMaterial.CADENCE_BLOSSOM
 ];
 
+export const FORGERY_LAHAI_SWORD: [ForgeryMaterial, ForgeryMaterial, ForgeryMaterial, ForgeryMaterial] = [
+  ForgeryMaterial.BROKEN_WING_POLARIZER,
+  ForgeryMaterial.MONOWING_POLARIZER,
+  ForgeryMaterial.POLYWING_POLARIZER,
+  ForgeryMaterial.LAYERED_WING_POLARIZER
+];
+
+export const FORGERY_LAHAI_PISTOL: [ForgeryMaterial, ForgeryMaterial, ForgeryMaterial, ForgeryMaterial] = [
+  ForgeryMaterial.INCOMPLETE_COMBUSTOR,
+  ForgeryMaterial.AFTERTUNE_COMBUSTOR,
+  ForgeryMaterial.REMNANT_COMBUSTOR,
+  ForgeryMaterial.REVERB_COMBUSTOR
+];
+
+export const FORGERY_LAHAI_RECTIFIER: [ForgeryMaterial, ForgeryMaterial, ForgeryMaterial, ForgeryMaterial] = [
+  ForgeryMaterial.SPLICED_STRING,
+  ForgeryMaterial.BROKEN_STRING,
+  ForgeryMaterial.SOLIDIFIED_STRING,
+  ForgeryMaterial.MELODIC_STRING
+];
+
+export const FORGERY_LAHAI_BROADBLADE: [ForgeryMaterial, ForgeryMaterial, ForgeryMaterial, ForgeryMaterial] = [
+  ForgeryMaterial.LF_CARVED_CRYSTAL,
+  ForgeryMaterial.MF_CARVED_CRYSTAL,
+  ForgeryMaterial.HF_CARVED_CRYSTAL,
+  ForgeryMaterial.FF_CARVED_CRYSTAL
+];
+
+export const FORGERY_LAHAI_GAUNTLETS: [ForgeryMaterial, ForgeryMaterial, ForgeryMaterial, ForgeryMaterial] = [
+  ForgeryMaterial.LF_WAVEWORN_SHARD,
+  ForgeryMaterial.MF_WAVEWORN_SHARD,
+  ForgeryMaterial.HF_WAVEWORN_SHARD,
+  ForgeryMaterial.FF_WAVEWORN_SHARD
+];
+
 
 // --- Enemy Material Sets ---
 export const ENEMY_WHISPERIN: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMaterial] = [
@@ -71,4 +106,25 @@ export const ENEMY_RING: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMate
   EnemyMaterial.BASIC_RING,
   EnemyMaterial.IMPROVED_RING,
   EnemyMaterial.TAILORED_RING
+];
+
+export const ENEMY_EXOSWARM_CORE: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMaterial] = [
+  EnemyMaterial.LF_EXOSWARM_CORE,
+  EnemyMaterial.MF_EXOSWARM_CORE,
+  EnemyMaterial.HF_EXOSWARM_CORE,
+  EnemyMaterial.FF_EXOSWARM_CORE
+];
+
+export const ENEMY_EXOSWARM_PENDANT: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMaterial] = [
+  EnemyMaterial.FRACTURED_EXOSWARM_PENDANT,
+  EnemyMaterial.WORN_EXOSWARM_PENDANT,
+  EnemyMaterial.CHIPPED_EXOSWARM_PENDANT,
+  EnemyMaterial.INTACT_EXOSWARM_PENDANT
+];
+
+export const ENEMY_MECH_CORE: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMaterial] = [
+  EnemyMaterial.LF_MECH_CORE,
+  EnemyMaterial.MF_MECH_CORE,
+  EnemyMaterial.HF_MECH_CORE,
+  EnemyMaterial.FF_MECH_CORE
 ];

@@ -3,7 +3,9 @@ import {
   ASCENSION_TEMPLATES, EXP_TEMPLATES, SKILL_TEMPLATES, applyTemplate } from './templates';
 import { BossMaterial, SpecialtyMaterial, ExpMaterial, Currency, WeeklyBossMaterial } from './materials';
 import { FORGERY_SWORD, FORGERY_PISTOL, FORGERY_RECTIFIER, FORGERY_BROADBLADE, FORGERY_GAUNTLETS,
-         ENEMY_WHISPERIN, ENEMY_HOWLER, ENEMY_POLYGON, ENEMY_TIDAL_RESIDUUM, ENEMY_RING } from './materialSets';
+         FORGERY_LAHAI_SWORD, FORGERY_LAHAI_PISTOL, FORGERY_LAHAI_RECTIFIER, FORGERY_LAHAI_BROADBLADE, FORGERY_LAHAI_GAUNTLETS,
+         ENEMY_WHISPERIN, ENEMY_HOWLER, ENEMY_POLYGON, ENEMY_TIDAL_RESIDUUM, ENEMY_RING,
+         ENEMY_EXOSWARM_CORE, ENEMY_EXOSWARM_PENDANT, ENEMY_MECH_CORE } from './materialSets';
 
 const DEFAULT_CHARACTER_ASCENSION_MAP: CharacterSpecificMaterialMap['ascension'] = {
   credits: Currency.SHELL_CREDITS,
@@ -807,6 +809,210 @@ export const qiuyuan: Character = createCharacter(
   }
 );
 
+export const aemeath: Character = createCharacter(
+  {
+    id: 'aemeath',
+    name: 'Aemeath',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/aemeath.webp',
+    statNodeNames: ['Fusion DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.OUR_CHOICE, enemy: ENEMY_EXOSWARM_CORE, specialty: SpecialtyMaterial.MOSS_AMBER },
+    skill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    statNode: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    inherentSkill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+  }
+);
+
+export const chisa: Character = createCharacter(
+  {
+    id: 'chisa',
+    name: 'Chisa',
+    type: WeaponType.BROADBLADE,
+    rarity: 5,
+    icon: '/assets/icons/characters/chisa.webp',
+    statNodeNames: ['Havoc DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.ABYSSAL_HUSK, enemy: ENEMY_POLYGON, specialty: SpecialtyMaterial.SUMMER_FLOWER },
+    skill: { forgery: FORGERY_BROADBLADE, enemy: ENEMY_POLYGON, weekly: WeeklyBossMaterial.WHEN_IRISES_BLOOM },
+    statNode: { forgery: FORGERY_BROADBLADE, enemy: ENEMY_POLYGON, weekly: WeeklyBossMaterial.WHEN_IRISES_BLOOM },
+    inherentSkill: { forgery: FORGERY_BROADBLADE, enemy: ENEMY_POLYGON, weekly: WeeklyBossMaterial.WHEN_IRISES_BLOOM },
+  }
+);
+
+export const buling: Character = createCharacter(
+  {
+    id: 'buling',
+    name: 'Buling',
+    type: WeaponType.RECTIFIER,
+    rarity: 4,
+    icon: '/assets/icons/characters/buling.webp',
+    statNodeNames: ['Electro DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.BLIGHTED_CROWN_OF_PUPPET_KING, enemy: ENEMY_WHISPERIN, specialty: SpecialtyMaterial.PECOK_FLOWER },
+    skill: { forgery: FORGERY_RECTIFIER, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    statNode: { forgery: FORGERY_RECTIFIER, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+    inherentSkill: { forgery: FORGERY_RECTIFIER, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.CURSE_OF_THE_ABYSS },
+  }
+);
+
+export const lynae: Character = createCharacter(
+  {
+    id: 'lynae',
+    name: 'Lynae',
+    type: WeaponType.PISTOL,
+    rarity: 5,
+    icon: '/assets/icons/characters/lynae.webp',
+    statNodeNames: ['Spectro DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.SUNCOVETERS_REACH, enemy: ENEMY_EXOSWARM_CORE, specialty: SpecialtyMaterial.RIMEWISP },
+    skill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.DREAMLESS_FEATHER },
+    statNode: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.DREAMLESS_FEATHER },
+    inherentSkill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.DREAMLESS_FEATHER },
+  }
+);
+
+export const luukHerssen: Character = createCharacter(
+  {
+    id: 'luuk_herssen',
+    name: 'Luuk Herssen',
+    type: WeaponType.GAUNTLETS,
+    rarity: 5,
+    icon: '/assets/icons/characters/luuk_herssen.webp',
+    statNodeNames: ['Spectro DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.SUNCOVETERS_REACH, enemy: ENEMY_EXOSWARM_PENDANT, specialty: SpecialtyMaterial.EDELSCHNEE },
+    skill: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    statNode: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    inherentSkill: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+  }
+);
+
+export const mornye: Character = createCharacter(
+  {
+    id: 'mornye',
+    name: 'Mornye',
+    type: WeaponType.BROADBLADE,
+    rarity: 5,
+    icon: '/assets/icons/characters/mornye.webp',
+    statNodeNames: ['Fusion DMG+', 'DEF+'],
+  },
+  {
+    ascension: { boss: BossMaterial.BURNING_JUDGMENT, enemy: ENEMY_MECH_CORE, specialty: SpecialtyMaterial.GEMINI_SPORE },
+    skill: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.THE_NETHERWORLDS_STARE },
+    statNode: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.THE_NETHERWORLDS_STARE },
+    inherentSkill: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.THE_NETHERWORLDS_STARE },
+  }
+);
+
+export const sigrika: Character = createCharacter(
+  {
+    id: 'sigrika',
+    name: 'Sigrika',
+    type: WeaponType.GAUNTLETS,
+    rarity: 5,
+    icon: '/assets/icons/characters/sigrika.webp',
+    statNodeNames: ['Aero DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.OUR_CHOICE, enemy: ENEMY_EXOSWARM_PENDANT, specialty: SpecialtyMaterial.ARITHMETIC_SHELL },
+    skill: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    statNode: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    inherentSkill: { forgery: FORGERY_LAHAI_GAUNTLETS, enemy: ENEMY_EXOSWARM_PENDANT, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+  }
+);
+
+export const hiyuki: Character = createCharacter(
+  {
+    id: 'hiyuki',
+    name: 'Hiyuki',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/hiyuki.webp',
+    statNodeNames: ['Glacio DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.OUR_CHOICE, enemy: ENEMY_EXOSWARM_CORE, specialty: SpecialtyMaterial.REDBELL },
+    skill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
+export const denia: Character = createCharacter(
+  {
+    id: 'denia',
+    name: 'Denia',
+    type: WeaponType.RECTIFIER,
+    rarity: 5,
+    icon: '/assets/icons/characters/denia.webp',
+    statNodeNames: ['Fusion DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.BURNING_JUDGMENT, enemy: ENEMY_MECH_CORE, specialty: SpecialtyMaterial.DREAM_OF_STARS },
+    skill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
+export const lucy: Character = createCharacter(
+  {
+    id: 'lucy',
+    name: 'Lucy',
+    type: WeaponType.PISTOL,
+    rarity: 5,
+    icon: '/assets/icons/characters/lucy.webp',
+    statNodeNames: ['Spectro DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.NIGHTMARE_FLASHDRIVE, enemy: ENEMY_EXOSWARM_CORE, specialty: SpecialtyMaterial.PAST_REVERIES },
+    skill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    statNode: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+    inherentSkill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_EXOSWARM_CORE, weekly: WeeklyBossMaterial.GOLD_IN_MEMORY },
+  }
+);
+
+export const rebecca: Character = createCharacter(
+  {
+    id: 'rebecca',
+    name: 'Rebecca',
+    type: WeaponType.PISTOL,
+    rarity: 5,
+    icon: '/assets/icons/characters/rebecca.webp',
+    statNodeNames: ['Electro DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.NIGHTMARE_FLASHDRIVE, enemy: ENEMY_MECH_CORE, specialty: SpecialtyMaterial.PAST_REVERIES },
+    skill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_PISTOL, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
+export const lucilla: Character = createCharacter(
+  {
+    id: 'lucilla',
+    name: 'Lucilla',
+    type: WeaponType.RECTIFIER,
+    rarity: 5,
+    icon: '/assets/icons/characters/lucilla.webp',
+    statNodeNames: ['Glacio DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.SUNCOVETERS_REACH, enemy: ENEMY_MECH_CORE, specialty: SpecialtyMaterial.FORGET_ME_NOT },
+    skill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_MECH_CORE, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
 export const characters: Character[] = [
   // v1.0
   roverSpectro,
@@ -874,4 +1080,26 @@ export const characters: Character[] = [
   // v2.7
   galbrena,
   qiuyuan,
+
+  // v2.8
+  chisa,
+
+  // v3.1
+  aemeath,
+  luukHerssen,
+  lynae,
+  mornye,
+
+  // v3.2
+  sigrika,
+  buling,
+
+  // v3.3
+  hiyuki,
+  denia,
+
+  // v3.4
+  lucy,
+  rebecca,
+  lucilla,
 ]

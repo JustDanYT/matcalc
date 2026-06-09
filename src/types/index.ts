@@ -113,3 +113,19 @@ export interface CalculatedMaterial {
   material: Material;
   quantity: number;
 }
+
+export interface CharacterSelectionConfig {
+  id: string;
+  currentLevel: number;
+  targetLevel: number;
+  skills: number[];
+  targetSkills: number[];
+  statNodeBooleans: boolean[][];
+  inherentSkillBooleans: boolean[];
+}
+
+export interface WeaponSelectionConfig {
+  id: string;
+  currentLevel: number;
+  targetLevel: number;
+}

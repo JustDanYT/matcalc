@@ -20,17 +20,17 @@ export const LevelCheckbox: React.FC<LevelCheckboxProps> = ({
       <span className="font-semibold text-gray-300 text-center">{label}</span>
       <div className="flex flex-col space-y-3 w-full px-1">
         <div className="flex items-center justify-center space-x-2">
-          <label htmlFor={`${label}-l2`} className="text-gray-400 text-sm cursor-pointer">
+          <label htmlFor={`${label}-l1`} className="text-gray-400 text-sm cursor-pointer">
             L2
           </label>
           <div className="relative flex items-center justify-center">
             <input
-              id={`${label}-l2`}
+              id={`${label}-l1`}
               type="checkbox"
               checked={isL2Checked}
               onChange={(e) => onL2Change(e.target.checked)}
               className="peer relative h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-700 transition-all
-                         checked:bg-cyan-500 checked:border-cyan-500"
+                         checked:bg-purple-600 checked:border-purple-600"
             />
             <svg
               className="pointer-events-none absolute h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
@@ -47,17 +47,17 @@ export const LevelCheckbox: React.FC<LevelCheckboxProps> = ({
           </div>
         </div>
         <div className="flex items-center justify-center space-x-2">
-          <label htmlFor={`${label}-l1`} className="text-gray-400 text-sm cursor-pointer">
+          <label htmlFor={`${label}-l2`} className="text-gray-400 text-sm cursor-pointer">
             L1
           </label>
           <div className="relative flex items-center justify-center">
             <input
-              id={`${label}-l1`}
+              id={`${label}-l2`}
               type="checkbox"
               checked={isL1Checked}
               onChange={(e) => onL1Change(e.target.checked)}
               className="peer relative h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-700 transition-all
-                         checked:bg-purple-600 checked:border-purple-600"
+                         checked:bg-cyan-500 checked:border-cyan-500"
             />
             <svg
               className="pointer-events-none absolute h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
