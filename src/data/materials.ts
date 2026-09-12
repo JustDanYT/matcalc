@@ -37,6 +37,12 @@ export enum BossMaterial {
   NIGHTMARE_FLASHDRIVE = "Nightmare Flashdrive",
   OUR_CHOICE = "Our Choice",
   SUNCOVETERS_REACH = "Suncoveter's Reach",
+
+  // v3.5
+  SOLIDARITYS_LONEFLAME = "Solidarity's Loneflame",
+
+  // v3.6
+  FORGED_EMPYREANS_SIGH = "Forged Empyrean's Sigh",
 }
 
 // Enum for Common Enemy Materials
@@ -80,6 +86,11 @@ export enum EnemyMaterial {
   MF_MECH_CORE = "MF Mech Core",
   HF_MECH_CORE = "HF Mech Core",
   FF_MECH_CORE = "FF Mech Core",
+
+  LF_AUTOPUPPET_KERNEL = "LF Autopuppet Kernel",
+  MF_AUTOPUPPET_KERNEL = "MF Autopuppet Kernel",
+  HF_AUTOPUPPET_KERNEL = "HF Autopuppet Kernel",
+  FF_AUTOPUPPET_KERNEL = "FF Autopuppet Kernel",
 }
 
 // Enum for Skill/Weapon Forgery Materials
@@ -186,6 +197,9 @@ export enum WeeklyBossMaterial {
   // v3.0+
   GOLD_IN_MEMORY = "Gold in Memory",
   WE_WHO_QUESTION = "We Who Question",
+
+  // v3.5
+  SKYWARD_GLAZED_HEART = "Skyward Glazed Heart",
 }
 
 // Enum for Character Specialty Materials (local specialties)
@@ -242,6 +256,13 @@ export enum SpecialtyMaterial {
   PAST_REVERIES = "Past Reveries",
   REDBELL = "Redbell",
   RIMEWISP = "Rimewisp",
+
+  // v3.5
+  CLOUDPERCH_SEED = "Cloudperch Seed",
+  FLOWBORNE_DREAM = "Flowborne Dream",
+
+  // v3.6
+  BLADE_BLOSSOM = "Blade Blossom",
 }
 
 
@@ -294,6 +315,8 @@ export const allMaterials: Material[] = [
   { name: BossMaterial.NIGHTMARE_FLASHDRIVE, rarity: 4, type: 'character_ascension', icon: getIconPath('boss', BossMaterial.NIGHTMARE_FLASHDRIVE) },
   { name: BossMaterial.OUR_CHOICE, rarity: 4, type: 'character_ascension', icon: getIconPath('boss', BossMaterial.OUR_CHOICE) },
   { name: BossMaterial.SUNCOVETERS_REACH, rarity: 4, type: 'character_ascension', icon: getIconPath('boss', BossMaterial.SUNCOVETERS_REACH) },
+  { name: BossMaterial.SOLIDARITYS_LONEFLAME, rarity: 4, type: 'character_ascension', icon: getIconPath('boss', BossMaterial.SOLIDARITYS_LONEFLAME) },
+  { name: BossMaterial.FORGED_EMPYREANS_SIGH, rarity: 4, type: 'character_ascension', icon: getIconPath('boss', BossMaterial.FORGED_EMPYREANS_SIGH) },
 
   // Enemy Materials (Tiered Rarities, Character Ascension)
   // LF (Rarity 2) -> MF (Rarity 3) -> HF (Rarity 4) -> FF (Rarity 5)
@@ -324,6 +347,7 @@ export const allMaterials: Material[] = [
   ...getTieredMaterials([EnemyMaterial.LF_EXOSWARM_CORE, EnemyMaterial.MF_EXOSWARM_CORE, EnemyMaterial.HF_EXOSWARM_CORE, EnemyMaterial.FF_EXOSWARM_CORE], 'enemy', 'character_ascension'),
   ...getTieredMaterials([EnemyMaterial.FRACTURED_EXOSWARM_PENDANT, EnemyMaterial.WORN_EXOSWARM_PENDANT, EnemyMaterial.CHIPPED_EXOSWARM_PENDANT, EnemyMaterial.INTACT_EXOSWARM_PENDANT], 'enemy', 'character_ascension'),
   ...getTieredMaterials([EnemyMaterial.LF_MECH_CORE, EnemyMaterial.MF_MECH_CORE, EnemyMaterial.HF_MECH_CORE, EnemyMaterial.FF_MECH_CORE], 'enemy', 'character_ascension'),
+  ...getTieredMaterials([EnemyMaterial.LF_AUTOPUPPET_KERNEL, EnemyMaterial.MF_AUTOPUPPET_KERNEL, EnemyMaterial.HF_AUTOPUPPET_KERNEL, EnemyMaterial.FF_AUTOPUPPET_KERNEL], 'enemy', 'character_ascension'),
 
   // Forgery Materials (Tiered Rarities, Weapon Ascension)
   // Sword
@@ -388,6 +412,7 @@ export const allMaterials: Material[] = [
   { name: WeeklyBossMaterial.CURSE_OF_THE_ABYSS, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.CURSE_OF_THE_ABYSS) },
   { name: WeeklyBossMaterial.GOLD_IN_MEMORY, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.GOLD_IN_MEMORY) },
   { name: WeeklyBossMaterial.WE_WHO_QUESTION, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.WE_WHO_QUESTION) },
+  { name: WeeklyBossMaterial.SKYWARD_GLAZED_HEART, rarity: 4, type: 'skill_material', icon: getIconPath('weekly', WeeklyBossMaterial.SKYWARD_GLAZED_HEART) },
 
   // Specialty Materials
   { name: SpecialtyMaterial.BELLE_POPPY, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.BELLE_POPPY) },
@@ -421,6 +446,9 @@ export const allMaterials: Material[] = [
   { name: SpecialtyMaterial.PAST_REVERIES, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.PAST_REVERIES) },
   { name: SpecialtyMaterial.REDBELL, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.REDBELL) },
   { name: SpecialtyMaterial.RIMEWISP, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.RIMEWISP) },
+  { name: SpecialtyMaterial.CLOUDPERCH_SEED, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.CLOUDPERCH_SEED) },
+  { name: SpecialtyMaterial.FLOWBORNE_DREAM, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.FLOWBORNE_DREAM) },
+  { name: SpecialtyMaterial.BLADE_BLOSSOM, rarity: 1, type: 'character_ascension', icon: getIconPath('specialty', SpecialtyMaterial.BLADE_BLOSSOM) },
 ];
 
 // Helper to get material details by name

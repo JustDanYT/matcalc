@@ -4,10 +4,11 @@ interface IconProps {
   name?: string; // Deprecated
   src?: string;   // New usage (image paths)
   alt?: string;
+  title?: string;
   className?: string;
 }
 
-export const Icon: React.FC<IconProps> = ({ name, src, alt, className }) => {
+export const Icon: React.FC<IconProps> = ({ name, src, alt, title, className }) => {
   if (src) {
     // Fallback image if target cannot be loaded
     const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -18,6 +19,7 @@ export const Icon: React.FC<IconProps> = ({ name, src, alt, className }) => {
       <img
         src={src}
         alt={alt || 'icon'}
+        title={title || alt}
         className={`inline-block ${className}`}
         onError={handleError}
       />

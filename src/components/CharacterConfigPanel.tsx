@@ -3,7 +3,9 @@ import { Icon } from './Icon';
 import { LevelSlider } from './LevelSlider';
 import { LevelCheckbox } from './LevelCheckbox';
 import { CollapsiblePanel } from './CollapsiblePanel';
-import { Character, CharacterSelectionConfig } from '../types';
+import { Character, CharacterSelectionConfig, Material } from '../types';
+import { getMaterialByName } from '../data/materials';
+import { calculateCharacterTotalMaterials } from '../utils/calculator';
 
 interface CharacterConfigPanelProps {
   characters: Character[];
@@ -15,6 +17,37 @@ interface CharacterConfigPanelProps {
 
 const skillLabels = ["Basic Attack", "Resonance Skill", "Forte Circuit", "Resonance Liberation", "Intro Skill"];
 const allowedLevels = [1, 20, 40, 50, 60, 70, 80, 90];
+
+// Gather the unique materials a character uses (deduplicated by name)
+const getCharacterMaterials = (char: Character): Material[] => {
+  const { materialMap } = char;
+  const names: string[] = [];
+
+  const push = (name: string | undefined) => {
+    if (name && !names.includes(name)) names.push(name);
+  };
+  const pushList = (list: string[] | undefined) => {
+    if (list) list.forEach(push);
+  };
+
+  // Ascension
+  push(materialMap.ascension?.boss);
+  pushList(materialMap.ascension?.enemy);
+  push(materialMap.ascension?.specialty);
+  push(materialMap.ascension?.credits);
+  // Exp
+  push(materialMap.exp?.xp);
+  push(materialMap.exp?.credits);
+  // Skill / Stat Node / Inherent Skill (same sets)
+  [materialMap.skill, materialMap.statNode, materialMap.inherentSkill].forEach(m => {
+    pushList(m?.forgery);
+    pushList(m?.enemy);
+    push(m?.weekly);
+    push(m?.credits);
+  });
+
+  return names.map(name => getMaterialByName(name)).filter((m): m is Material => !!m);
+};
 
 export const CharacterConfigPanel: React.FC<CharacterConfigPanelProps> = ({
   characters,
@@ -84,6 +117,10 @@ export const CharacterConfigPanel: React.FC<CharacterConfigPanelProps> = ({
 
         const statNodeName1 = char.statNodeNames?.[0] || 'Stat Node';
         const statNodeName2 = char.statNodeNames?.[1] || 'Stat Node';
+        const materialQuantities = calculateCharacterTotalMaterials(char, sel);
+        const materials = getCharacterMaterials(char)
+          .map(m => ({ material: m, quantity: materialQuantities[m.name] || 0 }))
+          .filter(({ quantity }) => quantity > 0);
 
         return (
           <CollapsiblePanel
@@ -94,6 +131,16 @@ export const CharacterConfigPanel: React.FC<CharacterConfigPanelProps> = ({
                   <Icon src={char.icon} alt={char.name} className={`w-10 h-10 rounded-full ${getRarityGlowClass(char.rarity)}`} />
                 )}
                 <span className="text-lg font-semibold">{char.name}</span>
+                <div className="hidden sm:flex items-center gap-2 ml-2">
+                  {materials.map(({ material, quantity }) => (
+                    material.icon ? (
+                      <div key={material.name} className="flex items-center gap-1">
+                        <Icon src={material.icon} alt={material.name} title={material.name} className={`w-5 h-5 rounded ${getRarityGlowClass(material.rarity)}`} />
+                        <span className="text-xs text-gray-300">{quantity}</span>
+                      </div>
+                    ) : null
+                  ))}
+                </div>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onRemove(sel.id); }}
@@ -110,11 +157,25 @@ export const CharacterConfigPanel: React.FC<CharacterConfigPanelProps> = ({
             panelClassName={`bg-gray-800 border ${containerBorderClass} rounded-xl`}
           >
             <div className="p-4 space-y-4">
-              <div className="flex flex-col items-center">
-                {char.icon && (
-                  <Icon src={char.icon} alt={char.name} className={`w-24 h-24 rounded-full ${getRarityGlowClass(char.rarity)}`} />
-                )}
-                <h3 className="text-2xl font-bold mt-2">{char.name}</h3>
+              <div className="flex flex-col sm:flex-row gap-6">
+                <div className="flex flex-col items-center shrink-0 mx-auto sm:mx-0">
+                  {char.icon && (
+                    <Icon src={char.icon} alt={char.name} className={`w-24 h-24 rounded-full ${getRarityGlowClass(char.rarity)}`} />
+                  )}
+                  <h3 className="text-2xl font-bold mt-2 text-center">{char.name}</h3>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Materials</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {materials.map(({ material, quantity }) => (
+                      <div key={material.name} className="flex items-center gap-2 bg-gray-900 rounded-lg px-2 py-1.5">
+                        {material.icon && <Icon src={material.icon} alt={material.name} className={`w-8 h-8 rounded ${getRarityGlowClass(material.rarity)}`} />}
+                        <span className="text-xs text-gray-200 leading-tight flex-1">{material.name}</span>
+                        <span className="text-xs font-semibold text-gray-300">x{quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <LevelSlider
                 label="Level"

@@ -1,5 +1,48 @@
-import { Character, Weapon, CalculatedMaterial, LevelRequirement } from '../types';
+import { Character, Weapon, CalculatedMaterial, LevelRequirement, CharacterSelectionConfig } from '../types';
 import { getMaterialByName } from '../data/materials';
+
+// Compute all materials a character selection requires (ascension + exp + skills + stat nodes + inherent skills)
+export const calculateCharacterTotalMaterials = (
+  char: Character,
+  sel: CharacterSelectionConfig
+): { [materialName: string]: number } => {
+  const required: { [key: string]: number } = {};
+
+  const add = (list: CalculatedMaterial[]) => {
+    list.forEach(m => {
+      required[m.material.name] = (required[m.material.name] || 0) + m.quantity;
+    });
+  };
+
+  add(calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'ascension'));
+  add(calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'exp'));
+
+  sel.skills.forEach((current, index) => {
+    add(calculateMaterials(char, current, sel.targetSkills[index], 'skill'));
+  });
+
+  sel.statNodeBooleans.forEach((levels) => {
+    const [isL1Checked, isL2Checked] = levels;
+    if (isL1Checked && isL2Checked) {
+      add(calculateMaterials(char, 0, 2, 'statNode'));
+    } else if (isL1Checked) {
+      add(calculateMaterials(char, 0, 1, 'statNode'));
+    } else if (isL2Checked) {
+      add(calculateMaterials(char, 1, 2, 'statNode'));
+    }
+  });
+
+  const [isL1Checked, isL2Checked] = sel.inherentSkillBooleans;
+  if (isL1Checked && isL2Checked) {
+    add(calculateMaterials(char, 0, 2, 'inherentSkill'));
+  } else if (isL1Checked) {
+    add(calculateMaterials(char, 0, 1, 'inherentSkill'));
+  } else if (isL2Checked) {
+    add(calculateMaterials(char, 1, 2, 'inherentSkill'));
+  }
+
+  return required;
+};
 
 export const calculateMaterials = (
   item: Character | Weapon | null,
@@ -47,7 +90,7 @@ export const calculateMaterials = (
   const levelsToConsider = relevantRequirements.filter(req => {
     if (type === 'ascension') {
       // For ascension, only include costs if targetLevel strictly exceeds the ascension threshold
-      return req.level > currentLevel && targetLevel > req.level;
+      return req.level >= currentLevel && targetLevel > req.level;
     } else {
       return req.level > currentLevel && targetLevel >= req.level;
     }

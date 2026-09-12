@@ -5,7 +5,8 @@ import { BossMaterial, SpecialtyMaterial, ExpMaterial, Currency, WeeklyBossMater
 import { FORGERY_SWORD, FORGERY_PISTOL, FORGERY_RECTIFIER, FORGERY_BROADBLADE, FORGERY_GAUNTLETS,
          FORGERY_LAHAI_SWORD, FORGERY_LAHAI_PISTOL, FORGERY_LAHAI_RECTIFIER, FORGERY_LAHAI_BROADBLADE, FORGERY_LAHAI_GAUNTLETS,
          ENEMY_WHISPERIN, ENEMY_HOWLER, ENEMY_POLYGON, ENEMY_TIDAL_RESIDUUM, ENEMY_RING,
-         ENEMY_EXOSWARM_CORE, ENEMY_EXOSWARM_PENDANT, ENEMY_MECH_CORE } from './materialSets';
+         ENEMY_EXOSWARM_CORE, ENEMY_EXOSWARM_PENDANT, ENEMY_MECH_CORE,
+         ENEMY_AUTOPUPPET_KERNEL } from './materialSets';
 
 const DEFAULT_CHARACTER_ASCENSION_MAP: CharacterSpecificMaterialMap['ascension'] = {
   credits: Currency.SHELL_CREDITS,
@@ -639,6 +640,30 @@ export const roverAero: Character = createCharacter(
   }
 );
 
+export const roverElectro: Character = createCharacter(
+  {
+    id: 'rover_electro',
+    name: 'Rover (Electro)',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/rover.webp',
+    statNodeNames: ['Crit. Rate+', 'ATK+'],
+    ascensionOverrides: {
+      40: { [BossMaterial.MYSTERIOUS_CODE]: { quantity: 1 } },
+      50: { [BossMaterial.MYSTERIOUS_CODE]: { quantity: 1 } },
+      60: { [BossMaterial.MYSTERIOUS_CODE]: { quantity: 1 } },
+      70: { [BossMaterial.MYSTERIOUS_CODE]: { quantity: 1 } },
+      80: { [BossMaterial.MYSTERIOUS_CODE]: { quantity: 1 } },
+    },
+  },
+  {
+    ascension: { boss: BossMaterial.MYSTERIOUS_CODE, enemy: ENEMY_WHISPERIN, specialty: SpecialtyMaterial.PECOK_FLOWER },
+    skill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
 export const cantarella: Character = createCharacter(
   {
     id: 'cantarella',
@@ -1013,6 +1038,74 @@ export const lucilla: Character = createCharacter(
   }
 );
 
+export const yangyangXuanling: Character = createCharacter(
+  {
+    id: 'yangyang_xuanling',
+    name: 'Yangyang: Xuanling',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/yangyang_xuanling.webp',
+    statNodeNames: ['Havoc DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.SOLIDARITYS_LONEFLAME, enemy: ENEMY_AUTOPUPPET_KERNEL, specialty: SpecialtyMaterial.CLOUDPERCH_SEED },
+    skill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    statNode: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    inherentSkill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+  }
+);
+
+export const suisui: Character = createCharacter(
+  {
+    id: 'suisui',
+    name: 'Suisui',
+    type: WeaponType.RECTIFIER,
+    rarity: 5,
+    icon: '/assets/icons/characters/suisui.webp',
+    statNodeNames: ['Glacio DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.SOLIDARITYS_LONEFLAME, enemy: ENEMY_AUTOPUPPET_KERNEL, specialty: SpecialtyMaterial.FLOWBORNE_DREAM },
+    skill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    statNode: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    inherentSkill: { forgery: FORGERY_LAHAI_RECTIFIER, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+  }
+);
+
+export const qingxiao: Character = createCharacter(
+  {
+    id: 'qingxiao',
+    name: 'Qingxiao',
+    type: WeaponType.SWORD,
+    rarity: 5,
+    icon: '/assets/icons/characters/qingxiao.webp',
+    statNodeNames: ['Aero DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.FORGED_EMPYREANS_SIGH, enemy: ENEMY_AUTOPUPPET_KERNEL, specialty: SpecialtyMaterial.BLADE_BLOSSOM },
+    skill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    statNode: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+    inherentSkill: { forgery: FORGERY_LAHAI_SWORD, enemy: ENEMY_AUTOPUPPET_KERNEL, weekly: WeeklyBossMaterial.WE_WHO_QUESTION },
+  }
+);
+
+export const jingran: Character = createCharacter(
+  {
+    id: 'jingran',
+    name: 'Jingran',
+    type: WeaponType.BROADBLADE,
+    rarity: 5,
+    icon: '/assets/icons/characters/jingran.webp',
+    statNodeNames: ['Fusion DMG+', 'ATK+'],
+  },
+  {
+    ascension: { boss: BossMaterial.FORGED_EMPYREANS_SIGH, enemy: ENEMY_WHISPERIN, specialty: SpecialtyMaterial.CLOUDPERCH_SEED },
+    skill: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    statNode: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+    inherentSkill: { forgery: FORGERY_LAHAI_BROADBLADE, enemy: ENEMY_WHISPERIN, weekly: WeeklyBossMaterial.SKYWARD_GLAZED_HEART },
+  }
+);
+
 export const characters: Character[] = [
   // v1.0
   roverSpectro,
@@ -1102,4 +1195,13 @@ export const characters: Character[] = [
   lucy,
   rebecca,
   lucilla,
+
+  // v3.5
+  roverElectro,
+  yangyangXuanling,
+  suisui,
+
+  // v3.6
+  qingxiao,
+  jingran,
 ]

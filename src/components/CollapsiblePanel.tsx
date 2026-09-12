@@ -21,7 +21,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   };
 
   return (
-    <div className={`bg-gray-700 rounded-lg shadow-md mb-4 overflow-y-auto ${panelClassName}`}>
+    <div className={`bg-gray-700 rounded-lg shadow-md mb-4 ${panelClassName}`}>
       <div
         className="flex justify-between items-center p-4 cursor-pointer"
         onClick={togglePanel}
@@ -39,7 +39,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         )}
       </div>
       <div
-        className={`transition-all duration-300 ease-in-out ${
+        className={`transition-all duration-300 ease-in-out overflow-y-auto ${
           isOpen ? 'max-h-[9999px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0'
         }`}
       >

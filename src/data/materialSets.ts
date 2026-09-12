@@ -128,3 +128,10 @@ export const ENEMY_MECH_CORE: [EnemyMaterial, EnemyMaterial, EnemyMaterial, Enem
   EnemyMaterial.HF_MECH_CORE,
   EnemyMaterial.FF_MECH_CORE
 ];
+
+export const ENEMY_AUTOPUPPET_KERNEL: [EnemyMaterial, EnemyMaterial, EnemyMaterial, EnemyMaterial] = [
+  EnemyMaterial.LF_AUTOPUPPET_KERNEL,
+  EnemyMaterial.MF_AUTOPUPPET_KERNEL,
+  EnemyMaterial.HF_AUTOPUPPET_KERNEL,
+  EnemyMaterial.FF_AUTOPUPPET_KERNEL
+];

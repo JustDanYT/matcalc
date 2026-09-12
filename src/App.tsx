@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { characters } from './data/characters';
 import { weapons } from './data/weapons';
-import { calculateMaterials } from './utils/calculator';
+import { calculateMaterials, calculateCharacterTotalMaterials } from './utils/calculator';
 import { Icon } from './components/Icon';
+import { DataImport } from './components/DataImport';
 import { CalculatedMaterial, CharacterSelectionConfig, WeaponSelectionConfig, Material } from './types';
-import { getMaterialByName, BossMaterial, EnemyMaterial, SpecialtyMaterial, ForgeryMaterial, ExpMaterial, Currency, WeeklyBossMaterial } from './data/materials';
-import * as materialSets from './data/materialSets';
+import { getMaterialByName, allMaterials as allMaterialsData, BossMaterial, EnemyMaterial, SpecialtyMaterial, ForgeryMaterial, ExpMaterial, Currency, WeeklyBossMaterial } from './data/materials';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
 import { MultiDropdown } from './components/MultiDropdown';
 import { MaterialInputField } from './components/MaterialInputField';
 import { CharacterConfigPanel } from './components/CharacterConfigPanel';
 import { WeaponConfigPanel } from './components/WeaponConfigPanel';
 import { getWaveplateCost, CLAIM_COST } from './data/waveplateCosts';
+import { calculateSynthesis, calculateSynthesisExcess, findTierGroup, SynthesisResult } from './utils/synthesis';
 
 const getMaterialSource = (material: Material): string => {
   if (Object.values(BossMaterial).includes(material.name as any)) return 'BossMaterial';
@@ -24,15 +25,8 @@ const getMaterialSource = (material: Material): string => {
   return 'Other';
 };
 
-const getMaterialSetId = (material: Material): string | null => {
-  for (const key in materialSets) {
-    const materialSet = (materialSets as any)[key];
-    if (Array.isArray(materialSet) && materialSet.includes(material.name as any)) {
-      return key;
-    }
-  }
-  return null;
-};
+const materialDataIndex = new Map<string, number>();
+allMaterialsData.forEach((mat, index) => materialDataIndex.set(mat.name, index));
 
 const materialSourceDisplayNames: { [key: string]: string } = {
   BossMaterial: 'Boss Ascension Materials',
@@ -59,7 +53,8 @@ const formatWaveplateNumber = (num: number): string => {
   return Math.round(num).toString();
 };
 
-const WAVEPLATE_ICON_PATH = getMaterialByName(Currency.WAVEPLATES)?.icon || '?';
+  const WAVEPLATE_ICON_PATH = getMaterialByName(Currency.WAVEPLATES)?.icon || '?';
+  const CRYSTAL_SOLVENT_WAVEPLATES = 60;
 const GITHUB_ICON_PATH = '/assets/icons/other/github-mark-white.svg';
 
 const createDefaultCharSelection = (id: string): CharacterSelectionConfig => ({
@@ -76,6 +71,13 @@ const createDefaultWeaponSelection = (id: string): WeaponSelectionConfig => ({
   id,
   currentLevel: 90,
   targetLevel: 90,
+});
+
+// Restore a cached character config, filling any missing/newer fields with defaults
+const mergeCharSelection = (id: string, cached?: CharacterSelectionConfig): CharacterSelectionConfig => ({
+  ...createDefaultCharSelection(id),
+  ...(cached || {}),
+  id,
 });
 
 const App: React.FC = () => {
@@ -128,18 +130,35 @@ const App: React.FC = () => {
   const [materialInventory, setMaterialInventory] = useState<{ [materialName: string]: number }>(
     savedState?.materialInventory || {}
   );
+  const [characterConfigCache, setCharacterConfigCache] = useState<{ [id: string]: CharacterSelectionConfig }>(
+    savedState?.characterConfigCache || {}
+  );
 
+  const [supplyPacks, setSupplyPacks] = useState<{ pack1: number; pack2: number; pack3: number; pack4: number; pack5: number }>(
+    { pack1: 0, pack2: 0, pack3: 0, pack4: 0, pack5: 0, ...(savedState?.supplyPacks || {}) }
+  );
+  const [crystalSolvents, setCrystalSolvents] = useState<number>(savedState?.crystalSolvents || 0);
+  const [shellCredits, setShellCredits] = useState<number>(savedState?.shellCredits || 0);
+  const [inventoryEnabled, setInventoryEnabled] = useState(savedState?.inventoryEnabled ?? true);
+  const [synthesisEnabled, setSynthesisEnabled] = useState(false);
+  const [synthesisResult, setSynthesisResult] = useState<SynthesisResult | null>(null);
   const [allMaterials, setAllMaterials] = useState<CalculatedMaterial[]>([]);
   const [totalWaveplate, setTotalWaveplate] = useState<number>(0);
 
+  const getInventory = (name: string) => {
+    if (!inventoryEnabled) return 0;
+    const base = materialInventory[name] || 0;
+    return name === Currency.SHELL_CREDITS ? base + shellCredits : base;
+  };
+
   useEffect(() => {
     try {
-      const stateToSave = { characterSelections, weaponSelections, materialInventory };
+      const stateToSave = { characterSelections, weaponSelections, materialInventory, characterConfigCache, supplyPacks, crystalSolvents, shellCredits, inventoryEnabled };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (err) {
       console.error("Could not save state to localStorage", err);
     }
-  }, [characterSelections, weaponSelections, materialInventory]);
+  }, [characterSelections, weaponSelections, materialInventory, characterConfigCache, supplyPacks, crystalSolvents, shellCredits]);
 
   const hasSelections = characterSelections.length > 0 || weaponSelections.length > 0;
 
@@ -147,12 +166,13 @@ const App: React.FC = () => {
   const selectedWeaponIds = weaponSelections.map(s => s.id);
 
   const handleToggleCharacter = (id: string) => {
-    setCharacterSelections(prev => {
-      if (prev.some(s => s.id === id)) {
-        return prev.filter(s => s.id !== id);
-      }
-      return [...prev, createDefaultCharSelection(id)];
-    });
+    const existing = characterSelections.find(s => s.id === id);
+    if (existing) {
+      setCharacterConfigCache(prev => ({ ...prev, [id]: existing }));
+      setCharacterSelections(prev => prev.filter(s => s.id !== id));
+    } else {
+      setCharacterSelections(prev => [...prev, mergeCharSelection(id, characterConfigCache[id])]);
+    }
   };
 
   const handleToggleWeapon = (id: string) => {
@@ -164,8 +184,15 @@ const App: React.FC = () => {
     });
   };
 
+  const roverIds = ['rover_spectro', 'rover_havoc', 'rover_aero', 'rover_electro'];
+
   const handleUpdateCharacter = (id: string, config: Partial<CharacterSelectionConfig>) => {
-    setCharacterSelections(prev => prev.map(s => s.id === id ? { ...s, ...config } : s));
+    setCharacterSelections(prev => {
+      if (roverIds.includes(id)) {
+        return prev.map(s => roverIds.includes(s.id) ? { ...s, ...config } : s);
+      }
+      return prev.map(s => s.id === id ? { ...s, ...config } : s);
+    });
   };
 
   const handleUpdateWeapon = (id: string, config: Partial<WeaponSelectionConfig>) => {
@@ -179,32 +206,10 @@ const App: React.FC = () => {
       const char = characters.find(c => c.id === sel.id);
       if (!char) return;
 
-      tempAllMaterials.push(...calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'ascension'));
-      tempAllMaterials.push(...calculateMaterials(char, sel.currentLevel, sel.targetLevel, 'exp'));
-
-      sel.skills.forEach((current, index) => {
-        tempAllMaterials.push(...calculateMaterials(char, current, sel.targetSkills[index], 'skill'));
+      const required = calculateCharacterTotalMaterials(char, sel);
+      Object.entries(required).forEach(([name, quantity]) => {
+        tempAllMaterials.push({ material: getMaterialByName(name)!, quantity });
       });
-
-      sel.statNodeBooleans.forEach((levels) => {
-        const [isL1Checked, isL2Checked] = levels;
-        if (isL1Checked && isL2Checked) {
-          tempAllMaterials.push(...calculateMaterials(char, 0, 2, 'statNode'));
-        } else if (isL1Checked) {
-          tempAllMaterials.push(...calculateMaterials(char, 0, 1, 'statNode'));
-        } else if (isL2Checked) {
-          tempAllMaterials.push(...calculateMaterials(char, 1, 2, 'statNode'));
-        }
-      });
-
-      const [isL1Checked, isL2Checked] = sel.inherentSkillBooleans;
-      if (isL1Checked && isL2Checked) {
-        tempAllMaterials.push(...calculateMaterials(char, 0, 2, 'inherentSkill'));
-      } else if (isL1Checked) {
-        tempAllMaterials.push(...calculateMaterials(char, 0, 1, 'inherentSkill'));
-      } else if (isL2Checked) {
-        tempAllMaterials.push(...calculateMaterials(char, 1, 2, 'inherentSkill'));
-      }
     });
 
     weaponSelections.forEach(sel => {
@@ -226,6 +231,130 @@ const App: React.FC = () => {
     setAllMaterials(Object.values(consolidatedMaterials));
   }, [characterSelections, weaponSelections]);
 
+  useEffect(() => {
+    if (!synthesisEnabled) {
+      setSynthesisResult(null);
+      return;
+    }
+    const required: { [name: string]: number } = {};
+    allMaterials.forEach(m => { required[m.material.name] = m.quantity; });
+    setSynthesisResult(calculateSynthesis(required, inventoryEnabled ? materialInventory : {}));
+  }, [allMaterials, materialInventory, synthesisEnabled]);
+
+  const weeklyBossDeficits = React.useMemo(() => {
+    const deficits: { [name: string]: number } = {};
+    const weeklyMats = Object.values(WeeklyBossMaterial) as string[];
+    for (const mat of weeklyMats) {
+      const required = allMaterials.find(m => m.material.name === mat)?.quantity || 0;
+      if (required === 0) continue;
+      const owned = getInventory(mat);
+      deficits[mat] = Math.max(0, required - owned);
+    }
+
+    let { pack1, pack2, pack3, pack4, pack5 } = supplyPacks;
+    const weWhoQuestion = WeeklyBossMaterial.WE_WHO_QUESTION;
+    const goldInMemory = WeeklyBossMaterial.GOLD_IN_MEMORY;
+    const skywardGlazedHeart = WeeklyBossMaterial.SKYWARD_GLAZED_HEART;
+
+    if ((deficits[skywardGlazedHeart] || 0) > 0 && pack5 > 0) {
+      const cover = Math.min(deficits[skywardGlazedHeart], pack5);
+      deficits[skywardGlazedHeart] -= cover;
+      pack5 -= cover;
+    }
+
+    if ((deficits[weWhoQuestion] || 0) > 0 && pack4 > 0) {
+      const cover = Math.min(deficits[weWhoQuestion], pack4);
+      deficits[weWhoQuestion] -= cover;
+      pack4 -= cover;
+    }
+    if ((deficits[weWhoQuestion] || 0) > 0 && pack5 > 0) {
+      const cover = Math.min(deficits[weWhoQuestion], pack5);
+      deficits[weWhoQuestion] -= cover;
+      pack5 -= cover;
+    }
+
+    if ((deficits[goldInMemory] || 0) > 0) {
+      const coverP3 = Math.min(deficits[goldInMemory], pack3);
+      deficits[goldInMemory] -= coverP3;
+      pack3 -= coverP3;
+      if ((deficits[goldInMemory] || 0) > 0) {
+        const coverP4 = Math.min(deficits[goldInMemory], pack4);
+        deficits[goldInMemory] -= coverP4;
+        pack4 -= coverP4;
+      }
+      if ((deficits[goldInMemory] || 0) > 0) {
+        const coverP5 = Math.min(deficits[goldInMemory], pack5);
+        deficits[goldInMemory] -= coverP5;
+        pack5 -= coverP5;
+      }
+    }
+
+    const oldWeeklyMats = [
+      WeeklyBossMaterial.MONUMENT_BELL,
+      WeeklyBossMaterial.UNENDING_DESTRUCTION,
+      WeeklyBossMaterial.DREAMLESS_FEATHER,
+      WeeklyBossMaterial.SENTINELS_DAGGER,
+      WeeklyBossMaterial.THE_NETHERWORLDS_STARE,
+      WeeklyBossMaterial.WHEN_IRISES_BLOOM,
+    ];
+
+    for (const mat of oldWeeklyMats) {
+      if ((deficits[mat] || 0) <= 0) continue;
+      const coverP1 = Math.min(deficits[mat], pack1);
+      deficits[mat] -= coverP1;
+      pack1 -= coverP1;
+    }
+
+    for (const mat of weeklyMats) {
+      if (mat === weWhoQuestion || mat === goldInMemory || mat === skywardGlazedHeart || oldWeeklyMats.includes(mat as any)) continue;
+      if ((deficits[mat] || 0) <= 0) continue;
+
+      const coverP1 = Math.min(deficits[mat], pack1);
+      deficits[mat] -= coverP1;
+      pack1 -= coverP1;
+
+      if ((deficits[mat] || 0) > 0) {
+        const coverP2 = Math.min(deficits[mat], pack2);
+        deficits[mat] -= coverP2;
+        pack2 -= coverP2;
+      }
+
+      if ((deficits[mat] || 0) > 0) {
+        const coverP3 = Math.min(deficits[mat], pack3);
+        deficits[mat] -= coverP3;
+        pack3 -= coverP3;
+      }
+
+      if ((deficits[mat] || 0) > 0) {
+        const coverP4 = Math.min(deficits[mat], pack4);
+        deficits[mat] -= coverP4;
+        pack4 -= coverP4;
+      }
+
+      if ((deficits[mat] || 0) > 0) {
+        const coverP5 = Math.min(deficits[mat], pack5);
+        deficits[mat] -= coverP5;
+        pack5 -= coverP5;
+      }
+    }
+
+    return deficits;
+  }, [allMaterials, materialInventory, supplyPacks]);
+
+  const packsApplied = React.useMemo(() => {
+    const weeklyMats = Object.values(WeeklyBossMaterial) as string[];
+    let total = 0;
+    for (const mat of weeklyMats) {
+      const required = allMaterials.find(m => m.material.name === mat)?.quantity || 0;
+      if (required === 0) continue;
+      const owned = materialInventory[mat] || 0;
+      const raw = Math.max(0, required - owned);
+      const adj = weeklyBossDeficits[mat] || 0;
+      total += raw - adj;
+    }
+    return total;
+  }, [allMaterials, materialInventory, weeklyBossDeficits]);
+
   const materialSourceOrder = [
     'BossMaterial', 'ExpMaterial', 'SpecialtyMaterial',
     'ForgeryMaterial', 'EnemyMaterial', 'WeeklyBossMaterial', 'Currency', 'Other',
@@ -234,36 +363,43 @@ const App: React.FC = () => {
   const sortMaterials = (a: CalculatedMaterial, b: CalculatedMaterial) => {
     const aSource = getMaterialSource(a.material);
     const bSource = getMaterialSource(b.material);
-    const aSetId = getMaterialSetId(a.material);
-    const bSetId = getMaterialSetId(b.material);
 
     const aIndex = materialSourceOrder.indexOf(aSource);
     const bIndex = materialSourceOrder.indexOf(bSource);
     if (aIndex !== bIndex) return aIndex - bIndex;
 
-    if ((aSource === 'EnemyMaterial' || aSource === 'ForgeryMaterial') &&
-        (bSource === 'EnemyMaterial' || bSource === 'ForgeryMaterial')) {
-        if (aSetId && bSetId) {
-            if (aSetId === bSetId) {
-                return (a.material.rarity || 0) - (b.material.rarity || 0);
-            }
-            return aSetId.localeCompare(bSetId);
-        }
-    }
-
-    if (a.material.rarity && b.material.rarity && a.material.rarity !== b.material.rarity) {
-      return (a.material.rarity || 0) - (b.material.rarity || 0);
-    }
-
-    return a.material.name.localeCompare(b.material.name);
+    // Within a category, follow the registration order in materials.ts, which is
+    // grouped by release version (and by tier low->high within each set).
+    const aDataIndex = materialDataIndex.get(a.material.name) ?? Number.MAX_SAFE_INTEGER;
+    const bDataIndex = materialDataIndex.get(b.material.name) ?? Number.MAX_SAFE_INTEGER;
+    return aDataIndex - bDataIndex;
   };
 
   const sortedMaterials = [...allMaterials].sort(sortMaterials);
 
-  const remainingNeededMaterials = sortedMaterials.filter(mat => {
-    const currentInventory = materialInventory[mat.material.name] || 0;
-    return (mat.quantity - currentInventory) > 0;
-  });
+  const remainingNeededMaterials = sortedMaterials
+    .map(mat => {
+      if (weeklyBossDeficits[mat.material.name] !== undefined) {
+        return { ...mat, quantity: weeklyBossDeficits[mat.material.name] };
+      }
+      if (synthesisEnabled && synthesisResult) {
+        const adjusted = synthesisResult.adjustedNeeded[mat.material.name];
+        if (adjusted !== undefined) return { ...mat, quantity: adjusted };
+      }
+      return mat;
+    })
+    .filter(mat => {
+      if (weeklyBossDeficits[mat.material.name] !== undefined) {
+        return weeklyBossDeficits[mat.material.name] > 0;
+      }
+      if (synthesisEnabled && synthesisResult) {
+        const adjusted = synthesisResult.adjustedNeeded[mat.material.name];
+        if (adjusted !== undefined) return adjusted > 0;
+      }
+      const currentInventory = getInventory(mat.material.name);
+      return (mat.quantity - currentInventory) > 0;
+    });
+
 
   const groupMaterialsByCategory = (materials: CalculatedMaterial[]) => {
     const groups: { [key: string]: { materials: CalculatedMaterial[]; totalWaveplateCost: number } } = {};
@@ -275,7 +411,11 @@ const App: React.FC = () => {
       }
       groups[source].materials.push(mat);
 
-      const neededToFarm = Math.max(0, mat.quantity - (materialInventory[mat.material.name] || 0));
+      const neededToFarm = weeklyBossDeficits[mat.material.name] !== undefined
+        ? mat.quantity
+        : synthesisEnabled && synthesisResult && synthesisResult.adjustedNeeded[mat.material.name] !== undefined
+          ? synthesisResult.adjustedNeeded[mat.material.name]
+          : Math.max(0, mat.quantity - getInventory(mat.material.name));
       const materialDetails = getMaterialByName(mat.material.name);
       const materialRarity = materialDetails?.rarity;
 
@@ -302,6 +442,41 @@ const App: React.FC = () => {
   };
 
   const materialGroups = groupMaterialsByCategory(remainingNeededMaterials);
+
+  const excessMaterials = inventoryEnabled ? (() => {
+    const required: { [name: string]: number } = {};
+    const owned: { [name: string]: number } = {};
+    allMaterials.forEach(m => {
+      required[m.material.name] = m.quantity;
+      owned[m.material.name] = getInventory(m.material.name);
+    });
+
+    const excessMap: { [name: string]: number } = {};
+
+    // Tierable materials: how much of each tier you can REMOVE (discard / sell /
+    // synthesize away) and still have enough to cover every need in the chain.
+    // The count accounts for upward synthesis (3 lower -> 1 higher): a tier's
+    // surplus is reduced by whatever must be retained to synthesize up and cover
+    // deficits on higher tiers. No downward synthesis is applied.
+    calculateSynthesisExcess(required, owned).forEach(({ materialName, excessCount }) => {
+      excessMap[materialName] = (excessMap[materialName] || 0) + excessCount;
+    });
+
+    // Non-tierable materials (boss / specialty / weekly / currency): raw surplus,
+    // since no conversion exists for them.
+    allMaterials.forEach(mat => {
+      if (findTierGroup(mat.material.name)) return;
+      const rawExcess = owned[mat.material.name] - mat.quantity;
+      if (rawExcess > 0) {
+        excessMap[mat.material.name] = (excessMap[mat.material.name] || 0) + rawExcess;
+      }
+    });
+
+    return Object.entries(excessMap)
+      .map(([name, excess]) => ({ material: getMaterialByName(name)!, excess }))
+      .filter(({ material, excess }) => material && excess > 0)
+      .sort((a, b) => sortMaterials({ material: a.material, quantity: 0 } as CalculatedMaterial, { material: b.material, quantity: 0 } as CalculatedMaterial));
+  })() : [];
 
   useEffect(() => {
     const calculatedTotalWaveplate = Object.values(materialGroups).reduce((sum, group) => {
@@ -349,6 +524,9 @@ const App: React.FC = () => {
 
   const clearAllInventory = () => {
     setMaterialInventory({});
+    setCrystalSolvents(0);
+    setShellCredits(0);
+    setSupplyPacks({ pack1: 0, pack2: 0, pack3: 0, pack4: 0, pack5: 0 });
   };
 
   const getRarityGlowClass = (rarity?: number) => {
@@ -387,7 +565,12 @@ const App: React.FC = () => {
       return (
         <React.Fragment key={`${columnKey}-group-${groupIndex}`}>
           <h4 className="text-lg font-semibold mt-4 mb-2 text-gray-300 border-b border-gray-600 pb-1 first:mt-0 flex items-center justify-between">
-            <span>{displaySource}</span>
+            <span>
+              {displaySource}
+              {sourceCategory === 'WeeklyBossMaterial' && packsApplied > 0 && (
+                <span className="ml-2 text-xs font-normal text-green-400">({packsApplied} from Supply Packs)</span>
+              )}
+            </span>
             {group.totalWaveplateCost > 0 && (
               <span className="flex items-center text-sm font-normal text-cyan-400 text-right">
                 <Icon src={WAVEPLATE_ICON_PATH} alt="Waveplates" className="w-5 h-5 mr-1" />
@@ -402,8 +585,12 @@ const App: React.FC = () => {
             const materialDetails = getMaterialByName(mat.material.name);
             const iconSrc = materialDetails?.icon || '?';
             const rarityGlowClass = getRarityGlowClass(materialDetails?.rarity);
-            const currentInventory = materialInventory[mat.material.name] || 0;
-            const neededToFarm = Math.max(0, mat.quantity - currentInventory);
+            const currentInventory = getInventory(mat.material.name);
+            const neededToFarm = weeklyBossDeficits[mat.material.name] !== undefined
+              ? mat.quantity
+              : synthesisEnabled && synthesisResult && synthesisResult.adjustedNeeded[mat.material.name] !== undefined
+                ? synthesisResult.adjustedNeeded[mat.material.name]
+                : Math.max(0, mat.quantity - currentInventory);
 
             return (
               <div key={`${columnKey}-${mat.material.name}`} className="flex items-center justify-between gap-4 text-gray-200 py-2">
@@ -417,6 +604,18 @@ const App: React.FC = () => {
               </div>
             );
           })}
+          {sourceCategory === 'WeeklyBossMaterial' && group.materials.length > 0 && (() => {
+            const totalMats = group.materials.reduce((s, m) => s + m.quantity, 0);
+            const matsPerWeek = 9;
+            const weeks = Math.ceil(totalMats / matsPerWeek);
+            const months = Math.round(weeks / 4.345);
+            const years = Math.floor(weeks / 52);
+            return (
+              <div className="text-xs text-gray-400 text-right mt-2 border-t border-gray-700 pt-2">
+                ~{weeks} weeks ({months} months{years > 0 ? ` / ${years} years` : ''}) at 3 claims/week
+              </div>
+            );
+          })()}
         </React.Fragment>
       );
     });
@@ -501,9 +700,30 @@ const App: React.FC = () => {
                   characters={characters}
                   selections={characterSelections}
                   onUpdate={handleUpdateCharacter}
-                  onRemove={(id) => setCharacterSelections(prev => prev.filter(s => s.id !== id))}
+                  onRemove={(id) => {
+                    const existing = characterSelections.find(s => s.id === id);
+                    if (existing) setCharacterConfigCache(prev => ({ ...prev, [id]: existing }));
+                    setCharacterSelections(prev => prev.filter(s => s.id !== id));
+                  }}
                   containerBorderClass={getContainerBorderClass()}
                 />
+              )}
+              {characterSelections.length > 1 && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      setCharacterConfigCache(prev => {
+                        const next = { ...prev };
+                        characterSelections.forEach(s => { next[s.id] = s; });
+                        return next;
+                      });
+                      setCharacterSelections([]);
+                    }}
+                    className="text-sm bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
+                  >
+                    Clear All Characters
+                  </button>
+                </div>
               )}
               {weaponSelections.length > 0 && (
                 <WeaponConfigPanel
@@ -533,7 +753,7 @@ const App: React.FC = () => {
                       {sortedMaterials.map((mat, index) => {
                         const iconSrc = mat.material.icon || '?';
                         const rarityGlowClass = getRarityGlowClass(mat.material.rarity);
-                        const currentInventory = materialInventory[mat.material.name] || 0;
+                        const currentInventory = getInventory(mat.material.name);
 
                         return (
                           <li key={index} className={`flex flex-col items-center justify-center p-3 rounded-xl transition-transform duration-200 transform hover:scale-105 border ${getContainerBorderClass()} hover:border-purple-500`}>
@@ -542,41 +762,174 @@ const App: React.FC = () => {
                               <div className="w-full text-sm text-gray-300 font-medium truncate mb-1">
                                 {mat.material.name}
                               </div>
-                              <MaterialInputField
-                                currentInventory={currentInventory}
-                                totalRequired={mat.quantity}
-                                onInventoryChange={handleInventoryChange(mat.material.name)}
-                                formatNumber={formatNumber}
-                              />
+                              {inventoryEnabled ? (
+                                <MaterialInputField
+                                  currentInventory={currentInventory}
+                                  totalRequired={mat.quantity}
+                                  onInventoryChange={handleInventoryChange(mat.material.name)}
+                                  formatNumber={formatNumber}
+                                />
+                              ) : (
+                                <span className="text-lg font-bold text-gray-300">x{formatNumber(mat.quantity)}</span>
+                              )}
                             </div>
                           </li>
                         );
                       })}
                     </ul>
-                    <div className="flex justify-center mt-6">
+                    <div className="flex flex-col items-center gap-3 mt-6">
+                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={inventoryEnabled}
+                          onChange={e => setInventoryEnabled(e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-cyan-400 focus:ring-cyan-500"
+                        />
+                        Track Inventory
+                      </label>
+                      {inventoryEnabled && (
+                        <>
+                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={synthesisEnabled}
+                          onChange={e => setSynthesisEnabled(e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-purple-600 focus:ring-purple-500"
+                        />
+                        Use Synthesis/Purification (3:1 up, 1:3 down)
+                      </label>
+                      {synthesisEnabled && synthesisResult && synthesisResult.savings.length > 0 && (
+                        <div className="text-xs text-cyan-400 text-center max-w-md">
+                          Synthesis reduces farming needs for {synthesisResult.savings.length} material tier(s)
+                        </div>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-300">
+                        <span className="text-gray-400">Weekly Supply Packs:</span>
+                        {(['pack1', 'pack2', 'pack3', 'pack4', 'pack5'] as const).map((pack) => (
+                          <div key={pack} className="flex items-center gap-1">
+                            <span className="text-xs text-gray-400">{pack === 'pack1' ? 'I' : pack === 'pack2' ? 'II' : pack === 'pack3' ? 'III' : pack === 'pack4' ? 'IV' : 'V'}</span>
+                            <button
+                              onClick={() => setSupplyPacks(prev => ({ ...prev, [pack]: Math.max(0, prev[pack] - 1) }))}
+                              className="w-5 h-5 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                            >−</button>
+                            <input
+                              type="number"
+                              min={0}
+                              value={supplyPacks[pack]}
+                              onChange={e => setSupplyPacks(prev => ({ ...prev, [pack]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                              className="w-8 text-center text-white font-medium bg-gray-800 border border-gray-600 rounded text-xs py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <button
+                              onClick={() => setSupplyPacks(prev => ({ ...prev, [pack]: prev[pack] + 1 }))}
+                              className="w-5 h-5 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                            >+</button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-300">
+                        <span className="text-gray-400">Crystal Solvents:</span>
+                        <button
+                          onClick={() => setCrystalSolvents(Math.max(0, crystalSolvents - 1))}
+                          className="w-5 h-5 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                        >−</button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={crystalSolvents}
+                          onChange={e => setCrystalSolvents(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-8 text-center text-white font-medium bg-gray-800 border border-gray-600 rounded text-xs py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => setCrystalSolvents(crystalSolvents + 1)}
+                          className="w-5 h-5 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                        >+</button>
+                        <span className="text-xs text-gray-500">({CRYSTAL_SOLVENT_WAVEPLATES} WP each)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-300">
+                        <span className="text-gray-400">Shell Credits:</span>
+                        <button
+                          onClick={() => setShellCredits(Math.max(0, shellCredits - 100000))}
+                          className="w-9 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold"
+                        >-100k</button>
+                        <button
+                          onClick={() => setShellCredits(Math.max(0, shellCredits - 10000))}
+                          className="w-7 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold"
+                        >-10k</button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={shellCredits}
+                          onChange={e => setShellCredits(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-20 text-center text-white font-medium bg-gray-800 border border-gray-600 rounded text-xs py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => setShellCredits(shellCredits + 10000)}
+                          className="w-7 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold"
+                        >+10k</button>
+                        <button
+                          onClick={() => setShellCredits(shellCredits + 100000)}
+                          className="w-9 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold"
+                        >+100k</button>
+                      </div>
+                      <DataImport onImport={(inv) => setMaterialInventory(prev => ({ ...prev, ...inv }))} currentInventory={materialInventory} />
                       <button
                         onClick={clearAllInventory}
                         className="text-sm bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
                       >
-                        Clear All
+                        Clear Inventory
                       </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CollapsiblePanel>
               )}
 
+              {inventoryEnabled && excessMaterials.length > 0 && (
+                <CollapsiblePanel title="Excess Materials" defaultOpen={true} panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl mb-8`}>
+                  <div className="p-5">
+                    <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {excessMaterials.map(({ material, excess }) => {
+                        const iconSrc = material.icon || '?';
+                        const rarityGlowClass = getRarityGlowClass(material.rarity);
+                        return (
+                          <li key={material.name} className={`flex flex-col items-center justify-center p-3 rounded-xl border ${getContainerBorderClass()}`}>
+                            <Icon src={iconSrc} alt={material.name} className={`w-12 h-12 mb-2 ${rarityGlowClass}`} />
+                            <div className="text-center">
+                              <div className="w-full text-xs text-gray-300 font-medium truncate mb-1" title={material.name}>
+                                {material.name}
+                              </div>
+                              <span className="text-lg font-bold text-green-400">+{formatNumber(excess)}</span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </CollapsiblePanel>
+              )}
+
               {remainingNeededMaterials.length > 0 ? (
-                <CollapsiblePanel title="To Be Farmed" defaultOpen={true} panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl`}>
-                    {totalWaveplate > 0 && (
+                <CollapsiblePanel title={synthesisEnabled ? "To Be Farmed (After Synthesis)" : "To Be Farmed"} defaultOpen={true} panelClassName={`bg-gray-900 border ${getContainerBorderClass()} rounded-xl`}>
+                    {totalWaveplate > 0 && (() => {
+                      const solventSavings = crystalSolvents * CRYSTAL_SOLVENT_WAVEPLATES;
+                      const effectiveWaveplate = Math.max(0, totalWaveplate - solventSavings);
+                      return (
                       <div className="flex flex-col items-center justify-center text-xl font-bold text-cyan-400 py-3 border-b border-gray-700 bg-gray-800 rounded-t-xl">
                         <div className="flex items-center">
                           <Icon src={WAVEPLATE_ICON_PATH} alt="Waveplates" className="w-6 h-6 mr-2" />
-                          <span className="mr-2">Total Waveplate Cost: {formatWaveplateNumber(totalWaveplate)}</span>
-                          <span className="text-xl font-bold text-gray-400">({Math.ceil(totalWaveplate / 240)} Days)</span>
+                          <span className="mr-2">Total Waveplate Cost: {formatWaveplateNumber(effectiveWaveplate)}
+                            {solventSavings > 0 && (
+                              <span className="text-base font-normal text-green-400 ml-1">(-{formatWaveplateNumber(solventSavings)} from Crystal Solvents)</span>
+                            )}
+                          </span>
+                          <span className="text-xl font-bold text-gray-400">({Math.ceil(effectiveWaveplate / 240)} Days</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">/ {Math.ceil(effectiveWaveplate / 1680)} Weeks)</span>
                         </div>
                         <p className="text-sm font-normal text-gray-400 mt-1">Estimations based on drop rate averages at UL70 and above.</p>
                       </div>
-                    )}
+                      );
+                    })()}
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>{renderMaterialColumn(column1Remaining, 'remaining-col1')}</div>
                     <div>{renderMaterialColumn(column2Remaining, 'remaining-col2')}</div>
