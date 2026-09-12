@@ -3,7 +3,7 @@ import { characters } from './data/characters';
 import { weapons } from './data/weapons';
 import { calculateMaterials, calculateCharacterTotalMaterials } from './utils/calculator';
 import { Icon } from './components/Icon';
-import { DataImport } from './components/DataImport';
+import { DataImport, PlannerState } from './components/DataImport';
 import { CalculatedMaterial, CharacterSelectionConfig, WeaponSelectionConfig, Material } from './types';
 import { getMaterialByName, allMaterials as allMaterialsData, BossMaterial, EnemyMaterial, SpecialtyMaterial, ForgeryMaterial, ExpMaterial, Currency, WeeklyBossMaterial } from './data/materials';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
@@ -197,6 +197,27 @@ const App: React.FC = () => {
 
   const handleUpdateWeapon = (id: string, config: Partial<WeaponSelectionConfig>) => {
     setWeaponSelections(prev => prev.map(s => s.id === id ? { ...s, ...config } : s));
+  };
+
+  const handleImportFullState = (state: PlannerState) => {
+    if (Array.isArray(state.characterSelections)) {
+      setCharacterSelections(state.characterSelections.map(s => mergeCharSelection(s.id, s)));
+    }
+    if (Array.isArray(state.weaponSelections)) {
+      setWeaponSelections(state.weaponSelections.map(s => ({ ...createDefaultWeaponSelection(s.id), ...s })));
+    }
+    if (state.materialInventory && typeof state.materialInventory === 'object') {
+      setMaterialInventory(state.materialInventory);
+    }
+    if (state.characterConfigCache && typeof state.characterConfigCache === 'object') {
+      setCharacterConfigCache(state.characterConfigCache);
+    }
+    if (state.supplyPacks && typeof state.supplyPacks === 'object') {
+      setSupplyPacks(state.supplyPacks);
+    }
+    if (typeof state.crystalSolvents === 'number') setCrystalSolvents(state.crystalSolvents);
+    if (typeof state.shellCredits === 'number') setShellCredits(state.shellCredits);
+    if (typeof state.inventoryEnabled === 'boolean') setInventoryEnabled(state.inventoryEnabled);
   };
 
   useEffect(() => {
@@ -871,7 +892,21 @@ const App: React.FC = () => {
                           className="w-9 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold"
                         >+100k</button>
                       </div>
-                      <DataImport onImport={(inv) => setMaterialInventory(prev => ({ ...prev, ...inv }))} currentInventory={materialInventory} />
+                      <DataImport
+                        onImport={(inv) => setMaterialInventory(prev => ({ ...prev, ...inv }))}
+                        currentInventory={materialInventory}
+                        fullState={{
+                          characterSelections,
+                          weaponSelections,
+                          materialInventory,
+                          characterConfigCache,
+                          supplyPacks,
+                          crystalSolvents,
+                          shellCredits,
+                          inventoryEnabled,
+                        }}
+                        onImportFullState={handleImportFullState}
+                      />
                       <button
                         onClick={clearAllInventory}
                         className="text-sm bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200"

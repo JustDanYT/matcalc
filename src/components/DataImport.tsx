@@ -1,10 +1,33 @@
 import React, { useRef, useState } from 'react';
 import { itemIdToMaterialName, wuwaInventoryKameraUrl } from '../data/itemIdMapping';
 import { allMaterials } from '../data/materials';
+import { CharacterSelectionConfig, WeaponSelectionConfig } from '../types';
 import { Icon } from './Icon';
 
 
 const plannerMaterialNames = new Set(allMaterials.map(m => m.name));
+
+const plannerStateKeys = [
+  'characterSelections',
+  'weaponSelections',
+  'materialInventory',
+  'characterConfigCache',
+  'supplyPacks',
+  'crystalSolvents',
+  'shellCredits',
+  'inventoryEnabled',
+] as const;
+
+export interface PlannerState {
+  characterSelections?: CharacterSelectionConfig[];
+  weaponSelections?: WeaponSelectionConfig[];
+  materialInventory?: { [materialName: string]: number };
+  characterConfigCache?: { [id: string]: CharacterSelectionConfig };
+  supplyPacks?: { pack1: number; pack2: number; pack3: number; pack4: number; pack5: number };
+  crystalSolvents?: number;
+  shellCredits?: number;
+  inventoryEnabled?: boolean;
+}
 
 interface DisplayItem {
   id: string;
@@ -16,10 +39,13 @@ interface DisplayItem {
 interface DataImportProps {
   onImport: (inventory: { [materialName: string]: number }) => void;
   currentInventory: { [materialName: string]: number };
+  fullState: PlannerState;
+  onImportFullState: (state: PlannerState) => void;
 }
 
-export const DataImport: React.FC<DataImportProps> = ({ onImport, currentInventory }) => {
+export const DataImport: React.FC<DataImportProps> = ({ onImport, currentInventory, fullState, onImportFullState }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const stateFileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<'success' | 'error' | null>(null);
   const [displayItems, setDisplayItems] = useState<DisplayItem[]>([]);
@@ -90,6 +116,44 @@ export const DataImport: React.FC<DataImportProps> = ({ onImport, currentInvento
     URL.revokeObjectURL(url);
   };
 
+  const handleFullStateExport = () => {
+    const blob = new Blob([JSON.stringify(fullState, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'matcalc-planner-state.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    setImportStatus('Full planner state exported.');
+    setStatusType('success');
+  };
+
+  const handleFullStateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data || typeof data !== 'object' || Array.isArray(data) || plannerStateKeys.every(k => !(k in data))) {
+        setImportStatus('No recognized planner state found. Make sure this is a matcalc-planner-state.json file exported from this app.');
+        setStatusType('error');
+        if (stateFileInputRef.current) stateFileInputRef.current.value = '';
+        return;
+      }
+
+      onImportFullState(data as PlannerState);
+      setImportStatus('Full planner state imported.');
+      setStatusType('success');
+    } catch {
+      setImportStatus('Failed to parse file. Make sure it is a valid matcalc-planner-state.json file exported from this app.');
+      setStatusType('error');
+    } finally {
+      if (stateFileInputRef.current) stateFileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex items-center gap-2">
@@ -112,6 +176,28 @@ export const DataImport: React.FC<DataImportProps> = ({ onImport, currentInvento
           className="text-sm bg-gray-700 hover:bg-cyan-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
         >
           Export Inventory
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          ref={stateFileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFullStateUpload}
+          className="hidden"
+          id="planner-state-upload"
+        />
+        <label
+          htmlFor="planner-state-upload"
+          className="text-sm bg-gray-700 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer inline-block"
+        >
+          Import Full State
+        </label>
+        <button
+          onClick={handleFullStateExport}
+          className="text-sm bg-gray-700 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
+        >
+          Export Full State
         </button>
       </div>
       {importStatus && statusType === 'success' && (
